@@ -13,8 +13,8 @@ type Tab = 'celebration' | 'faceoff' | 'analyze';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('celebration');
-  const [prompts, setPrompts] = useState<string[]>([]);
-  const [videoPrompt, setVideoPrompt] = useState<string>('');
+  const [imagePrompts, setImagePrompts] = useState<string[]>([]);
+  const [videoPrompts, setVideoPrompts] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isRandomizing, setIsRandomizing] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -69,8 +69,8 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
     if (isGenerating || isRandomizing || isAnalyzing) return;
     setIsGenerating(true);
     setError(null);
-    setPrompts([]);
-    setVideoPrompt('');
+    setImagePrompts([]);
+    setVideoPrompts([]);
     setYoutubeMeta(null);
 
     try {
@@ -84,8 +84,8 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
             newVideoPrompt = createFaceoffVideoPrompt(animal1, animal2, background);
         }
 
-        setPrompts([newPrompt]);
-        setVideoPrompt(newVideoPrompt);
+        setImagePrompts([newPrompt]);
+        setVideoPrompts([newVideoPrompt]);
         
         if (newVideoPrompt) {
             const meta = await generateYoutubeMeta(newVideoPrompt);
@@ -104,8 +104,8 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
     if (isRandomizing || isGenerating || isAnalyzing) return;
     setIsRandomizing(true);
     setError(null);
-    setPrompts([]);
-    setVideoPrompt('');
+    setImagePrompts([]);
+    setVideoPrompts([]);
     setYoutubeMeta(null);
 
     try {
@@ -138,8 +138,8 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
         finalVideoPrompt = createFaceoffVideoPrompt(newAnimal1, newAnimal2, newBackground);
       }
 
-      setPrompts([finalPrompt]);
-      setVideoPrompt(finalVideoPrompt);
+      setImagePrompts([finalPrompt]);
+      setVideoPrompts([finalVideoPrompt]);
       
       if (finalVideoPrompt) {
           const meta = await generateYoutubeMeta(finalVideoPrompt);
@@ -159,8 +159,8 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
     if (isAnalyzing || !shortsUrl) return;
     setIsAnalyzing(true);
     setError(null);
-    setPrompts([]);
-    setVideoPrompt('');
+    setImagePrompts([]);
+    setVideoPrompts([]);
     setYoutubeMeta(null);
 
     try {
@@ -178,13 +178,13 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
         throw new Error("Could not fetch YouTube thumbnail. This might be a CORS issue. This feature works best when run in an environment without strict cross-origin restrictions.");
       }
       
-      const { imagePrompt, videoPrompt: newVideoPrompt } = await generatePromptsFromImage(base64Data);
+      const { imagePrompts: newImagePrompts, videoPrompts: newVideoPrompts, videoConcept } = await generatePromptsFromImage(base64Data);
       
-      setPrompts([imagePrompt]);
-      setVideoPrompt(newVideoPrompt);
+      setImagePrompts(newImagePrompts);
+      setVideoPrompts(newVideoPrompts);
       
-      if (newVideoPrompt) {
-        const meta = await generateYoutubeMeta(newVideoPrompt);
+      if (videoConcept) {
+        const meta = await generateYoutubeMeta(videoConcept);
         setYoutubeMeta(meta);
       }
 
@@ -198,20 +198,33 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
   }, [shortsUrl, isAnalyzing]);
 
   const handleSaveAll = useCallback(() => {
-    if (!prompts.length && !videoPrompt && !youtubeMeta) return;
+    if (!imagePrompts.length && !videoPrompts.length && !youtubeMeta) return;
 
     let content = '';
 
-    if (prompts.length > 0) {
-        content += '--- GENERATED IMAGE PROMPT ---\n';
-        content += prompts.join('\n\n');
-        content += '\n\n';
-    }
+    if (activeTab === 'analyze' && imagePrompts.length > 0) {
+        imagePrompts.forEach((prompt, index) => {
+            content += `--- SCENE ${index + 1} IMAGE PROMPT ---\n`;
+            content += prompt;
+            content += '\n\n';
+            if (videoPrompts[index]) {
+                content += `--- SCENE ${index + 1} VIDEO PROMPT ---\n`;
+                content += videoPrompts[index];
+                content += '\n\n';
+            }
+        });
+    } else {
+        if (imagePrompts.length > 0) {
+            content += '--- GENERATED IMAGE PROMPT ---\n';
+            content += imagePrompts.join('\n\n');
+            content += '\n\n';
+        }
 
-    if (videoPrompt) {
-        content += '--- GENERATED VIDEO PROMPT ---\n';
-        content += videoPrompt;
-        content += '\n\n';
+        if (videoPrompts.length > 0) {
+            content += '--- GENERATED VIDEO PROMPT ---\n';
+            content += videoPrompts.join('\n\n');
+            content += '\n\n';
+        }
     }
 
     if (youtubeMeta) {
@@ -250,7 +263,7 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [prompts, videoPrompt, youtubeMeta]);
+  }, [imagePrompts, videoPrompts, youtubeMeta, activeTab]);
 
   const TabButton: React.FC<{tab: Tab, label: string}> = ({tab, label}) => (
     <button onClick={() => setActiveTab(tab)} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 ${activeTab === tab ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
@@ -409,7 +422,7 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
           
           {error && <p className="text-red-400 text-center mt-6">{error}</p>}
 
-          {(prompts.length > 0 || videoPrompt) && !isAnalyzing && (
+          {(imagePrompts.length > 0 || videoPrompts.length > 0) && !isLoading && (
             <div className="mt-8 space-y-6">
               <div className="flex justify-between items-center pb-4 border-b border-gray-700">
                 <h2 className="text-2xl font-bold text-gray-100">Generated Content</h2>
@@ -423,21 +436,47 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
                 </button>
               </div>
               <div className="space-y-8 pt-6">
-                {prompts.length > 0 && (
-                  <div>
-                      <h3 className="text-xl font-bold text-gray-200 mb-4">Image Prompt</h3>
-                      <div className="space-y-4">
-                          {prompts.map((p, i) => (
-                          <PromptCard key={`img-${i}`} prompt={p} />
-                          ))}
+                {activeTab === 'analyze' && imagePrompts.length > 0 ? (
+                  imagePrompts.map((prompt, index) => (
+                    <div key={`scene-${index}`} className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+                      <h3 className="text-2xl font-bold text-gray-200 mb-4 border-b border-gray-600 pb-2">Scene {index + 1}</h3>
+                      <div className="space-y-6 mt-4">
+                        <div>
+                          <h4 className="text-lg font-semibold text-indigo-400 mb-2">Image Prompt</h4>
+                          <PromptCard prompt={prompt} />
+                        </div>
+                        {videoPrompts[index] && (
+                          <div>
+                            <h4 className="text-lg font-semibold text-teal-400 mb-2">Video Prompt</h4>
+                            <PromptCard prompt={videoPrompts[index]} />
+                          </div>
+                        )}
                       </div>
-                  </div>
-                )}
-                {videoPrompt && (
-                  <div>
-                      <h3 className="text-xl font-bold text-gray-200 mb-4">Video Prompt</h3>
-                      <PromptCard prompt={videoPrompt} />
-                  </div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    {imagePrompts.length > 0 && (
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-200 mb-4">Image Prompt</h3>
+                            <div className="space-y-4">
+                                {imagePrompts.map((p, i) => (
+                                <PromptCard key={`img-${i}`} prompt={p} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {videoPrompts.length > 0 && (
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-200 mb-4">Video Prompt</h3>
+                            <div className="space-y-4">
+                                {videoPrompts.map((p, i) => (
+                                  <PromptCard key={`vid-${i}`} prompt={p} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                  </>
                 )}
                 {youtubeMeta && (
                   <div>

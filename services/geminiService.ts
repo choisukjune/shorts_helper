@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { YoutubeMeta } from '../types';
 
@@ -7,7 +6,7 @@ const cleanJsonString = (jsonStr: string): string => {
     return match && match[1] ? match[1] : jsonStr;
 }
 
-export const generateYoutubeMeta = async (videoPrompt: string): Promise<YoutubeMeta | null> => {
+export const generateYoutubeMeta = async (videoConcept: string): Promise<YoutubeMeta | null> => {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const model = 'gemini-2.5-flash';
@@ -23,7 +22,7 @@ export const generateYoutubeMeta = async (videoPrompt: string): Promise<YoutubeM
         };
         const contents = `Generate a catchy, viral YouTube Shorts title and a brief, engaging description (including relevant hashtags) for the following video concept. Provide versions in both English and Hindi. The video is intense, brutal, and cinematic.
 
-        Video Concept: "${videoPrompt}"`;
+        Video Concept: "${videoConcept}"`;
 
         const response = await ai.models.generateContent({
             model,
@@ -46,7 +45,7 @@ export const generateYoutubeMeta = async (videoPrompt: string): Promise<YoutubeM
     }
 }
 
-export const generatePromptsFromImage = async (base64ImageData: string): Promise<{imagePrompt: string, videoPrompt: string}> => {
+export const generatePromptsFromImage = async (base64ImageData: string): Promise<{imagePrompts: string[], videoPrompts: string[], videoConcept: string}> => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const model = 'gemini-2.5-flash';
 
@@ -58,19 +57,50 @@ export const generatePromptsFromImage = async (base64ImageData: string): Promise
     };
 
     const textPart = {
-        text: `Analyze the provided image in detail. Based on the analysis, create two distinct creative prompts:
-1.  **Image Prompt:** A detailed, descriptive prompt for an AI image generator to create an ultra-realistic, photorealistic image. The prompt should be based on the provided image but aim for a more cinematic and high-fidelity result. Include specifics on lighting (e.g., natural, harsh, soft), composition (e.g., wide-angle, close-up), and fine details to achieve a documentary-style, 8K resolution look. The prompt should end with "ultra real photo".
-2.  **Video Prompt:** A dynamic prompt for an AI video generator. Describe a short, engaging scene inspired by the image, suitable for a YouTube Short. Include camera movement, action, and atmosphere.
-Return the result as a JSON object.`
+        text: `Analyze the provided image in detail. Based on your analysis, imagine what happens *next* and create a compelling 3-scene storyline that continues from the moment in the image. This storyline should be suitable for a dramatic YouTube Short.
+
+For each of the 3 scenes, provide two distinct prompts:
+1.  **Image Prompt:** A detailed, descriptive prompt for an AI image generator to create an ultra-realistic, photorealistic image representing a key moment in that scene. Include specifics on lighting, composition, and fine details to achieve a documentary-style, 8K resolution look. The prompt should end with "ultra real photo".
+2.  **Video Prompt:** A dynamic prompt for an AI video generator describing the action in that scene. Include camera movement, character actions, atmosphere, and sound design cues.
+
+Finally, provide a concise **Overall Video Concept** that summarizes the entire 3-scene storyline. This will be used to generate a title and description.
+
+Return the result as a single JSON object with the specified structure.`
     };
     
     const schema = {
         type: Type.OBJECT,
         properties: {
-            image_prompt: { type: Type.STRING, description: 'The detailed prompt for AI image generation.' },
-            video_prompt: { type: Type.STRING, description: 'The dynamic prompt for AI video generation.' },
+            scene1: {
+                type: Type.OBJECT,
+                properties: {
+                    image_prompt: { type: Type.STRING, description: 'The image prompt for scene 1.' },
+                    video_prompt: { type: Type.STRING, description: 'The video prompt for scene 1.' },
+                },
+                required: ['image_prompt', 'video_prompt'],
+            },
+            scene2: {
+                type: Type.OBJECT,
+                properties: {
+                    image_prompt: { type: Type.STRING, description: 'The image prompt for scene 2.' },
+                    video_prompt: { type: Type.STRING, description: 'The video prompt for scene 2.' },
+                },
+                required: ['image_prompt', 'video_prompt'],
+            },
+            scene3: {
+                type: Type.OBJECT,
+                properties: {
+                    image_prompt: { type: Type.STRING, description: 'The image prompt for scene 3.' },
+                    video_prompt: { type: Type.STRING, description: 'The video prompt for scene 3.' },
+                },
+                required: ['image_prompt', 'video_prompt'],
+            },
+            video_concept: {
+                type: Type.STRING,
+                description: 'A concise summary of the entire 3-scene video storyline.'
+            },
         },
-        required: ['image_prompt', 'video_prompt'],
+        required: ['scene1', 'scene2', 'scene3', 'video_concept'],
     };
 
     const response = await ai.models.generateContent({
@@ -83,8 +113,9 @@ Return the result as a JSON object.`
     const parsed = JSON.parse(jsonStr);
     
     return {
-        imagePrompt: parsed.image_prompt,
-        videoPrompt: parsed.video_prompt,
+        imagePrompts: [parsed.scene1.image_prompt, parsed.scene2.image_prompt, parsed.scene3.image_prompt],
+        videoPrompts: [parsed.scene1.video_prompt, parsed.scene2.video_prompt, parsed.scene3.video_prompt],
+        videoConcept: parsed.video_concept,
     };
 };
 
@@ -97,12 +128,12 @@ export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff')
         schema = {
           type: Type.OBJECT,
           properties: {
-            animal: { type: Type.STRING, description: 'A real, large, and visually impressive wild animal. Be specific, for example "Goliath Heron" or "Bactrian Camel".' },
-            background: { type: Type.STRING, description: 'A visually stunning and fitting natural environment for the animal, like "Salt Flats" or "Boreal Forest".' },
+            animal: { type: Type.STRING, description: 'A real, large, and visually impressive wild animal that is not a bird. Be specific, for example "Jaguar" or "Black Caiman".' },
+            background: { type: Type.STRING, description: 'A visually stunning and fitting natural environment for the animal, like "Amazon Riverbank" or "Dense Jungle Clearing".' },
           },
           required: ['animal', 'background']
         };
-        contents = `Generate a pair of a real, large, and visually impressive wild animal, and a fitting natural environment for it. Avoid common choices like lions, tigers, or bears. Be specific and creative.`;
+        contents = `Your task is to provide a creative and unique combination of a real, large, wild animal and a specific, fitting natural environment, with a very specific theme. The animal MUST be a creature that inhabits the Amazon rainforest, other jungle environments, or riverine ecosystems. It is absolutely CRITICAL to EXCLUDE all avian species (birds). Focus on mammals, reptiles, amphibians, and large fish. The suggestions must be varied and unpredictable with each request. Do not repeat suggestions. For example: 'Giant River Otter' in 'Pantanal Wetlands' or 'Black Caiman' on an 'Amazon Riverbank' or 'Tapir' in a 'Dense Jungle Clearing'. The background should be a specific location within these ecosystems.`;
       } else { // faceoff
         schema = {
           type: Type.OBJECT,
@@ -113,7 +144,7 @@ export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff')
           },
           required: ['animal1', 'animal2', 'background']
         };
-        contents = `Generate a pair of two different, large, and visually impressive wild animals that would make for an epic confrontation, and a fitting natural environment for their battle. Avoid common choices. Be specific and creative.`;
+        contents = `Your task is to create a highly creative and unique matchup between two different, large, wild animals for an epic confrontation, set in a specific and fitting natural environment. It is CRITICAL that every response is drastically different and avoids predictable pairings. Do not repeat suggestions. Steer clear of typical apex predators unless they are obscure species. Instead, focus on creating surprising and plausible confrontations between creatures from different parts of the world or ecological niches. Your goal is maximum randomization and unpredictability. For example: 'Honey Badger' vs 'Giant Anteater' in the 'Cerrado Savanna' or 'Cassowary' vs 'Komodo Dragon' on a 'Volcanic Island Shore'.`;
       }
 
     const response = await ai.models.generateContent({
