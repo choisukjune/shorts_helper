@@ -1,0 +1,5 @@
+{
+  "name": "Image Prompt Generator",
+  "description": "A web application to generate creative and detailed prompts for AI image generation. Simply choose your elements to get started.",
+  "requestFramePermissions": []
+}
