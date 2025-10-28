@@ -1,10 +1,52 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { YoutubeMeta } from '../types';
+
+import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { YoutubeMeta, Scene } from '../types';
 
 const cleanJsonString = (jsonStr: string): string => {
+    // Look for a markdown code block, and if it exists, extract the content.
     const match = jsonStr.match(/```json\n([\s\S]*?)\n```/);
-    return match && match[1] ? match[1] : jsonStr;
+    if (match && match[1]) {
+        return match[1];
+    }
+    // Fallback for cases where the markdown block is missing.
+    return jsonStr;
 }
+
+// FIX: Add missing utility function 'extractVideoId'.
+export const extractVideoId = (url: string): string | null => {
+  if (!url) return null;
+  // This regex handles:
+  // - youtube.com/watch?v=...
+  // - youtu.be/...
+  // - youtube.com/shorts/...
+  // - youtube.com/embed/...
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/ ]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
+// FIX: Add missing utility function 'imageUrlToBase64'.
+export const imageUrlToBase64 = async (url: string): Promise<string> => {
+    // This function will fetch an image from a URL and convert it to a base64 string.
+    // NOTE: This can be blocked by CORS policy if the server doesn't allow cross-origin requests.
+    // A server-side proxy would be a more robust solution in a production environment.
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+    }
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            // result is a data URL like "data:image/jpeg;base64,LzlqLzRB..."
+            // We only want the part after the comma.
+            const base64data = reader.result as string;
+            resolve(base64data.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+};
 
 export const generateYoutubeMeta = async (videoConcept: string): Promise<YoutubeMeta | null> => {
     try {
@@ -40,12 +82,11 @@ export const generateYoutubeMeta = async (videoConcept: string): Promise<Youtube
 
     } catch (e) {
         console.error("Failed to generate YouTube meta:", e);
-        // Let the caller handle the error state in the UI
         throw new Error("Failed to generate YouTube metadata.");
     }
 }
 
-export const generatePromptsFromImage = async (base64ImageData: string): Promise<{imagePrompts: string[], videoPrompts: string[], videoConcept: string}> => {
+export const generatePromptsFromImage = async (base64ImageData: string): Promise<{scene: Scene, fullConcept: string}> => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const model = 'gemini-2.5-flash';
 
@@ -57,50 +98,28 @@ export const generatePromptsFromImage = async (base64ImageData: string): Promise
     };
 
     const textPart = {
-        text: `Analyze the provided image in detail. Based on your analysis, imagine what happens *next* and create a compelling 3-scene storyline that continues from the moment in the image. This storyline should be suitable for a dramatic YouTube Short.
+        text: `Analyze the provided image from a YouTube Short. This image represents the first scene of a story.
 
-For each of the 3 scenes, provide two distinct prompts:
-1.  **Image Prompt:** A detailed, descriptive prompt for an AI image generator to create an ultra-realistic, photorealistic image representing a key moment in that scene. Include specifics on lighting, composition, and fine details to achieve a documentary-style, 8K resolution look. The prompt should end with "ultra real photo".
-2.  **Video Prompt:** A dynamic prompt for an AI video generator describing the action in that scene. Include camera movement, character actions, atmosphere, and sound design cues.
+Create two distinct prompts for this single scene:
+1.  **Image Prompt:** A detailed prompt for an AI image generator to recreate this scene ultra-realistically. It should be descriptive and evocative. End with "ultra real photo".
+2.  **Video Prompt:** A dynamic prompt for an AI video generator describing the action that is happening or is about to happen in this scene.
 
-Finally, provide a concise **Overall Video Concept** that summarizes the entire 3-scene storyline. This will be used to generate a title and description.
+Also provide a "full_concept" string that summarizes this initial scene, which can be used for creating YouTube metadata.
 
-Return the result as a single JSON object with the specified structure.`
+Return the result as a single JSON object.`
     };
     
     const schema = {
         type: Type.OBJECT,
         properties: {
-            scene1: {
-                type: Type.OBJECT,
-                properties: {
-                    image_prompt: { type: Type.STRING, description: 'The image prompt for scene 1.' },
-                    video_prompt: { type: Type.STRING, description: 'The video prompt for scene 1.' },
-                },
-                required: ['image_prompt', 'video_prompt'],
-            },
-            scene2: {
-                type: Type.OBJECT,
-                properties: {
-                    image_prompt: { type: Type.STRING, description: 'The image prompt for scene 2.' },
-                    video_prompt: { type: Type.STRING, description: 'The video prompt for scene 2.' },
-                },
-                required: ['image_prompt', 'video_prompt'],
-            },
-            scene3: {
-                type: Type.OBJECT,
-                properties: {
-                    image_prompt: { type: Type.STRING, description: 'The image prompt for scene 3.' },
-                    video_prompt: { type: Type.STRING, description: 'The video prompt for scene 3.' },
-                },
-                required: ['image_prompt', 'video_prompt'],
-            },
-            video_concept: {
+            image_prompt: { type: Type.STRING, description: 'The detailed prompt for AI image generation for the scene.' },
+            video_prompt: { type: Type.STRING, description: 'The dynamic prompt for AI video generation for the scene.' },
+            full_concept: {
                 type: Type.STRING,
-                description: 'A concise summary of the entire 3-scene video storyline.'
-            },
+                description: "A summary of this initial scene."
+            }
         },
-        required: ['scene1', 'scene2', 'scene3', 'video_concept'],
+        required: ['image_prompt', 'video_prompt', 'full_concept'],
     };
 
     const response = await ai.models.generateContent({
@@ -111,15 +130,212 @@ Return the result as a single JSON object with the specified structure.`
 
     const jsonStr = cleanJsonString(response.text.trim());
     const parsed = JSON.parse(jsonStr);
+
+    if (!parsed.image_prompt || !parsed.video_prompt || !parsed.full_concept) {
+        throw new Error("AI did not return the expected scene data.");
+    }
     
+    const scene: Scene = {
+        imagePrompt: parsed.image_prompt,
+        videoPrompt: parsed.video_prompt,
+    };
+
     return {
-        imagePrompts: [parsed.scene1.image_prompt, parsed.scene2.image_prompt, parsed.scene3.image_prompt],
-        videoPrompts: [parsed.scene1.video_prompt, parsed.scene2.video_prompt, parsed.scene3.video_prompt],
-        videoConcept: parsed.video_concept,
+        scene,
+        fullConcept: parsed.full_concept,
     };
 };
 
-export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff') => {
+export const generateNextScene = async (previousImageBase64: string, previousImagePrompt: string): Promise<{ newImageBase64: string; newImagePrompt: string; newVideoPrompt: string; }> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // --- Step 1: Generate the next image based on the previous one ---
+    const imageGenerationModel = 'gemini-2.5-flash-image';
+    const imagePart = {
+        inlineData: {
+            data: previousImageBase64,
+            mimeType: 'image/jpeg',
+        },
+    };
+    const imageGenTextPart = {
+        text: `Based on the provided image, which is described as "${previousImagePrompt}", generate a new image that shows the very next logical event. The new image must continue the story from the previous one.`,
+    };
+
+    const imageResponse = await ai.models.generateContent({
+        model: imageGenerationModel,
+        contents: { parts: [imagePart, imageGenTextPart] },
+        config: {
+            responseModalities: [Modality.IMAGE],
+        },
+    });
+
+    let newImageBase64 = '';
+    if (imageResponse.candidates && imageResponse.candidates.length > 0) {
+        for (const part of imageResponse.candidates[0].content.parts) {
+            if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
+                newImageBase64 = part.inlineData.data;
+                break;
+            }
+        }
+    }
+
+    if (!newImageBase64) {
+        throw new Error("AI did not return an image for the next scene.");
+    }
+
+    // --- Step 2: Generate prompts for the newly generated image ---
+    const promptGenerationModel = 'gemini-2.5-flash';
+    const newImagePart = {
+        inlineData: {
+            mimeType: 'image/jpeg',
+            data: newImageBase64,
+        },
+    };
+    const promptGenTextPart = {
+        text: `Analyze the provided image, which is the next scene in a continuing story.
+
+        Your task is to create two distinct prompts for this new scene:
+        1.  **image_prompt:** A detailed, descriptive prompt for an AI image generator to recreate this exact scene. It must be ultra-realistic and end with the phrase "ultra real photo".
+        2.  **video_prompt:** A dynamic prompt for an AI video generator describing the action that is happening or about to happen in this new scene, continuing the story logically.
+
+        Return the result as a single JSON object with these two keys.`,
+    };
+    
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            image_prompt: { type: Type.STRING, description: 'A detailed prompt for AI image generation to recreate the provided scene. Must end with "ultra real photo".' },
+            video_prompt: { type: Type.STRING, description: 'A dynamic prompt for AI video generation describing the action in the scene.' },
+        },
+        required: ['image_prompt', 'video_prompt'],
+    };
+
+    const promptResponse = await ai.models.generateContent({
+        model: promptGenerationModel,
+        contents: { parts: [newImagePart, promptGenTextPart] },
+        config: { responseMimeType: 'application/json', responseSchema: schema },
+    });
+    
+    const jsonStr = cleanJsonString(promptResponse.text.trim());
+    const parsed = JSON.parse(jsonStr);
+
+    if (!parsed.image_prompt || !parsed.video_prompt) {
+        throw new Error("AI did not return prompts for the next scene.");
+    }
+
+    return {
+        newImageBase64,
+        newImagePrompt: parsed.image_prompt,
+        newVideoPrompt: parsed.video_prompt,
+    };
+};
+
+export const generateNextSceneFromUploadedImage = async (
+    uploadedImageBase64: string,
+    previousImagePrompt: string
+): Promise<{ newImageBase64: string; newImagePrompt: string; newVideoPrompt: string; }> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    // --- Step 1: Imagine the next scene ---
+    const ideationModel = 'gemini-2.5-flash';
+    const ideationContents = `The previous scene was described as: "${previousImagePrompt}". Based on this, describe the very next logical event or moment in the story. Be concise and descriptive. What happens immediately after?`;
+
+    const ideationResponse = await ai.models.generateContent({
+        model: ideationModel,
+        contents: ideationContents,
+    });
+    const nextSceneDescription = ideationResponse.text;
+    if (!nextSceneDescription) {
+        throw new Error("AI failed to imagine the next scene.");
+    }
+
+    // --- Step 2: Modify the uploaded image to show the new scene ---
+    const imageModificationModel = 'gemini-2.5-flash-image';
+    const imagePart = {
+        inlineData: {
+            data: uploadedImageBase64,
+            mimeType: 'image/jpeg',
+        },
+    };
+    const imageModTextPart = {
+        text: `Take the provided image and modify it to depict a new scene. The new scene is: "${nextSceneDescription}". Change the content of the image to show this new event, but try to maintain the original image's style, lighting, and overall mood.`,
+    };
+
+    const imageResponse = await ai.models.generateContent({
+        model: imageModificationModel,
+        contents: { parts: [imagePart, imageModTextPart] },
+        config: {
+            responseModalities: [Modality.IMAGE],
+        },
+    });
+
+    let newImageBase64 = '';
+    if (imageResponse.candidates && imageResponse.candidates.length > 0) {
+        for (const part of imageResponse.candidates[0].content.parts) {
+            if (part.inlineData && part.inlineData.mimeType?.startsWith('image/')) {
+                newImageBase64 = part.inlineData.data;
+                break;
+            }
+        }
+    }
+
+    if (!newImageBase64) {
+        throw new Error("AI did not return a modified image for the new scene.");
+    }
+
+    // --- Step 3: Generate new prompts for the modified image ---
+    const promptGenerationModel = 'gemini-2.5-flash';
+    const newImagePart = {
+        inlineData: {
+            mimeType: 'image/jpeg',
+            data: newImageBase64,
+        },
+    };
+    const promptGenTextPart = {
+        text: `Analyze the provided image, which represents a new scene in a story.
+
+        Your task is to create two distinct prompts for this new scene:
+        1.  **image_prompt:** A detailed, descriptive prompt for an AI image generator to recreate this exact scene. It must be ultra-realistic and end with the phrase "ultra real photo".
+        2.  **video_prompt:** A dynamic prompt for an AI video generator describing the action that is happening or about to happen in this new scene, continuing the story logically.
+
+        Return the result as a single JSON object with these two keys.`,
+    };
+    
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            image_prompt: { type: Type.STRING, description: 'A detailed prompt for AI image generation to recreate the provided scene. Must end with "ultra real photo".' },
+            video_prompt: { type: Type.STRING, description: 'A dynamic prompt for AI video generation describing the action in the scene.' },
+        },
+        required: ['image_prompt', 'video_prompt'],
+    };
+
+    const promptResponse = await ai.models.generateContent({
+        model: promptGenerationModel,
+        contents: { parts: [newImagePart, promptGenTextPart] },
+        config: { responseMimeType: 'application/json', responseSchema: schema },
+    });
+    
+    const jsonStr = cleanJsonString(promptResponse.text.trim());
+    const parsed = JSON.parse(jsonStr);
+
+    if (!parsed.image_prompt || !parsed.video_prompt) {
+        throw new Error("AI did not return prompts for the modified image.");
+    }
+
+    return {
+        newImageBase64,
+        newImagePrompt: parsed.image_prompt,
+        newVideoPrompt: parsed.video_prompt,
+    };
+};
+
+export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff' | 'selfie'): Promise<{
+    animal1: string;
+    animal2: string;
+    animal3: string;
+    background: string;
+}> => {
      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
      const model = 'gemini-2.5-flash';
      let schema, contents;
@@ -133,75 +349,75 @@ export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff')
           },
           required: ['animal', 'background']
         };
-        contents = `Your task is to provide a creative and unique combination of a real, large, wild animal and a specific, fitting natural environment, with a very specific theme. The animal MUST be a creature that inhabits the Amazon rainforest, other jungle environments, or riverine ecosystems. It is absolutely CRITICAL to EXCLUDE all avian species (birds). Focus on mammals, reptiles, amphibians, and large fish. The suggestions must be varied and unpredictable with each request. Do not repeat suggestions. For example: 'Giant River Otter' in 'Pantanal Wetlands' or 'Black Caiman' on an 'Amazon Riverbank' or 'Tapir' in a 'Dense Jungle Clearing'. The background should be a specific location within these ecosystems.`;
-      } else { // faceoff
+        contents = `Your task is to provide a creative and unique combination of a real, large, wild animal and a specific, fitting natural environment, with a very specific theme. The animal MUST be a creature that inhabits the Amazon rainforest, other jungle environments, or riverine ecosystems. It is absolutely CRITICAL to EXCLUDE all avian species (birds). Focus on mammals, reptiles, amphibians, and large fish. The suggestions should be evocative and cinematic.`;
+     } else if (mode === 'selfie') {
+        schema = {
+            type: Type.OBJECT,
+            properties: {
+                selfie_taker: { type: Type.STRING, description: 'A cute or charismatic animal to take the selfie. E.g., "Quokka", "Orange Tabby Cat".' },
+                friend1: { type: Type.STRING, description: 'A second, different animal to be in the selfie. Can be a surprising combination.' },
+                friend2: { type: Type.STRING, description: 'A third, different animal to be in the selfie. Can be another surprising combination.' },
+                background: { type: Type.STRING, description: 'A visually stunning natural or urban environment for the selfie. E.g., "Eiffel Tower at Night", "Coral Reef".' },
+            },
+            required: ['selfie_taker', 'friend1', 'friend2', 'background']
+        };
+        contents = `Your task is to provide a creative and unique combination for a funny animal selfie. Provide one animal to take the selfie, two other different animals to pose with it, and a specific, fitting environment for their picture. The combination should be surprising, wholesome, or humorous. The suggestions should be dramatic, evocative, and cinematic. Avoid mythical creatures.`;
+     } else { // faceoff
         schema = {
           type: Type.OBJECT,
           properties: {
-            animal1: { type: Type.STRING, description: 'A real, large, and visually impressive wild animal. Be specific, for example "Goliath Heron" or "Bactrian Camel".' },
-            animal2: { type: Type.STRING, description: 'A second, different real, large, and visually impressive wild animal that would be a good opponent for the first animal. Be specific and creative.' },
-            background: { type: Type.STRING, description: 'A visually stunning and fitting natural environment for the two animals to fight in, like "Volcanic Plains" or "Flooded Mangrove Forest".' },
+            animal1: { type: Type.STRING, description: 'A real, large, and visually impressive wild animal. Be specific, for example "Siberian Tiger" or "Grizzly Bear".' },
+            animal2: { type: Type.STRING, description: 'Another real, large, and visually impressive wild animal that would be a good opponent for the first. Be specific.' },
+            background: { type: Type.STRING, description: 'A visually stunning and fitting natural environment for the fight, like "Snowy Mountain Pass" or "Volcanic Plain".' },
           },
           required: ['animal1', 'animal2', 'background']
         };
-        contents = `Your task is to create a highly creative and unique matchup between two different, large, wild animals for an epic confrontation, set in a specific and fitting natural environment. It is CRITICAL that every response is drastically different and avoids predictable pairings. Do not repeat suggestions. Steer clear of typical apex predators unless they are obscure species. Instead, focus on creating surprising and plausible confrontations between creatures from different parts of the world or ecological niches. Your goal is maximum randomization and unpredictability. For example: 'Honey Badger' vs 'Giant Anteater' in the 'Cerrado Savanna' or 'Cassowary' vs 'Komodo Dragon' on a 'Volcanic Island Shore'.`;
-      }
+        contents = `Your task is to provide a creative and unique combination of two real, large, wild animals for a face-off, along with a specific, fitting natural environment for their battle. The suggestions should be dramatic, evocative, and cinematic. Avoid mythical creatures.`;
+     }
 
-    const response = await ai.models.generateContent({
-        model,
-        contents,
-        config: { responseMimeType: "application/json", responseSchema: schema, temperature: 1 },
-    });
-    
-    const jsonStr = cleanJsonString(response.text.trim());
-    const parsed = JSON.parse(jsonStr);
+    try {
+        const response = await ai.models.generateContent({
+            model,
+            contents,
+            config: { responseMimeType: "application/json", responseSchema: schema },
+        });
 
-    return {
-        newAnimal1: parsed.animal || parsed.animal1,
-        newAnimal2: parsed.animal2 || '',
-        newBackground: parsed.background,
-    }
-}
+        const jsonStr = cleanJsonString(response.text.trim());
+        const parsed = JSON.parse(jsonStr);
 
-export const extractVideoId = (url: string): string | null => {
-    const regex = /(?:youtube\.com\/shorts\/|youtu\.be\/)([\w-]{11})/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-};
-
-export const imageUrlToBase64 = (url: string): Promise<string> => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            // This can fail due to CORS policy on the client side.
-            // A server-side proxy would be a more robust solution.
-            const response = await fetch(url);
-            if (!response.ok) {
-                // Try a CORS proxy as a fallback
-                const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
-                const proxyResponse = await fetch(proxyUrl);
-                if (!proxyResponse.ok) {
-                    throw new Error(`Failed to fetch image directly and via proxy: ${proxyResponse.statusText}`);
-                }
-                const blob = await proxyResponse.blob();
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64data = reader.result as string;
-                    resolve(base64data.split(',')[1]);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-                return;
+        if (mode === 'celebration') {
+            if (!parsed.animal || !parsed.background) {
+                throw new Error('AI response is missing required fields for celebration mode.');
             }
-            const blob = await response.blob();
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64data = reader.result as string;
-                resolve(base64data.split(',')[1]);
+            return {
+                animal1: parsed.animal,
+                animal2: '',
+                animal3: '',
+                background: parsed.background
             };
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        } catch (error) {
-            reject(error);
+        } else if (mode === 'selfie') {
+            if (!parsed.selfie_taker || !parsed.friend1 || !parsed.friend2 || !parsed.background) {
+                throw new Error('AI response is missing required fields for selfie mode.');
+            }
+            return {
+                animal1: parsed.selfie_taker,
+                animal2: parsed.friend1,
+                animal3: parsed.friend2,
+                background: parsed.background
+            };
+        } else { // faceoff
+            if (!parsed.animal1 || !parsed.animal2 || !parsed.background) {
+                throw new Error('AI response is missing required fields for faceoff mode.');
+            }
+            return {
+                animal1: parsed.animal1,
+                animal2: parsed.animal2,
+                animal3: '',
+                background: parsed.background
+            };
         }
-    });
+    } catch (e) {
+        console.error("Failed to generate randomized content:", e);
+        throw new Error("Failed to get random suggestions from the AI.");
+    }
 };
