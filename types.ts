@@ -1,6 +1,7 @@
+
 export interface YoutubeMeta {
   en: { title: string; description: string; };
-  hi: { title: string; description: string; };
+  ja: { title: string; description: string; };
 }
 
 export interface Scene {

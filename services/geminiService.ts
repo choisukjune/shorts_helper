@@ -57,12 +57,12 @@ export const generateYoutubeMeta = async (videoConcept: string): Promise<Youtube
             properties: {
                 english_title: { type: Type.STRING, description: 'A catchy, viral YouTube Shorts title in English (max 60 characters).' },
                 english_description: { type: Type.STRING, description: 'A brief, engaging YouTube Shorts description in English, including 3-5 relevant hashtags.' },
-                hindi_title: { type: Type.STRING, description: 'A catchy, viral YouTube Shorts title in Hindi (max 60 characters).' },
-                hindi_description: { type: Type.STRING, description: 'A brief, engaging YouTube Shorts description in Hindi, including 3-5 relevant hashtags.' },
+                japanese_title: { type: Type.STRING, description: 'A catchy, viral YouTube Shorts title in Japanese (max 60 characters).' },
+                japanese_description: { type: Type.STRING, description: 'A brief, engaging YouTube Shorts description in Japanese, including 3-5 relevant hashtags.' },
             },
-            required: ['english_title', 'english_description', 'hindi_title', 'hindi_description']
+            required: ['english_title', 'english_description', 'japanese_title', 'japanese_description']
         };
-        const contents = `Generate a catchy, viral YouTube Shorts title and a brief, engaging description (including relevant hashtags) for the following video concept. Provide versions in both English and Hindi. The video is intense, brutal, and cinematic.
+        const contents = `Generate a catchy, viral YouTube Shorts title and a brief, engaging description (including relevant hashtags) for the following video concept. Provide versions in both English and Japanese. The video is intense, brutal, and cinematic.
 
         Video Concept: "${videoConcept}"`;
 
@@ -77,7 +77,7 @@ export const generateYoutubeMeta = async (videoConcept: string): Promise<Youtube
 
         return {
             en: { title: parsed.english_title, description: parsed.english_description },
-            hi: { title: parsed.hindi_title, description: parsed.hindi_description },
+            ja: { title: parsed.japanese_title, description: parsed.japanese_description },
         };
 
     } catch (e) {
@@ -330,7 +330,7 @@ export const generateNextSceneFromUploadedImage = async (
     };
 };
 
-export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff' | 'selfie'): Promise<{
+export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff' | 'selfie' | 'deepsea'): Promise<{
     animal1: string;
     animal2: string;
     animal3: string;
@@ -362,6 +362,16 @@ export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff' 
             required: ['selfie_taker', 'friend1', 'friend2', 'background']
         };
         contents = `Your task is to provide a creative and unique combination for a funny animal selfie. Provide one animal to take the selfie, two other different animals to pose with it, and a specific, fitting environment for their picture. The combination should be surprising, wholesome, or humorous. The suggestions should be dramatic, evocative, and cinematic. Avoid mythical creatures.`;
+     } else if (mode === 'deepsea') {
+        schema = {
+            type: Type.OBJECT,
+            properties: {
+                creature: { type: Type.STRING, description: 'A real, giant, and visually strange or terrifying deep-sea creature. Be specific, e.g., "Colossal Squid", "Goblin Shark".' },
+                setting: { type: Type.STRING, description: 'The surface setting where the creature has been brought, e.g., "Deck of a rusty whaling ship", "An arctic research vessel\'s icy deck".' },
+            },
+            required: ['creature', 'setting']
+        };
+        contents = `Your task is to provide a creative and unique combination for a cinematic scene. Suggest a real, giant, and visually strange or terrifying deep-sea creature that has been captured and brought to the surface. Also suggest the specific surface setting where it is lying. The combination should be dramatic and evocative.`;
      } else { // faceoff
         schema = {
           type: Type.OBJECT,
@@ -386,35 +396,17 @@ export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff' 
         const parsed = JSON.parse(jsonStr);
 
         if (mode === 'celebration') {
-            if (!parsed.animal || !parsed.background) {
-                throw new Error('AI response is missing required fields for celebration mode.');
-            }
-            return {
-                animal1: parsed.animal,
-                animal2: '',
-                animal3: '',
-                background: parsed.background
-            };
+            if (!parsed.animal || !parsed.background) throw new Error('AI response is missing required fields for celebration mode.');
+            return { animal1: parsed.animal, animal2: '', animal3: '', background: parsed.background };
         } else if (mode === 'selfie') {
-            if (!parsed.selfie_taker || !parsed.friend1 || !parsed.friend2 || !parsed.background) {
-                throw new Error('AI response is missing required fields for selfie mode.');
-            }
-            return {
-                animal1: parsed.selfie_taker,
-                animal2: parsed.friend1,
-                animal3: parsed.friend2,
-                background: parsed.background
-            };
+            if (!parsed.selfie_taker || !parsed.friend1 || !parsed.friend2 || !parsed.background) throw new Error('AI response is missing required fields for selfie mode.');
+            return { animal1: parsed.selfie_taker, animal2: parsed.friend1, animal3: parsed.friend2, background: parsed.background };
+        } else if (mode === 'deepsea') {
+            if (!parsed.creature || !parsed.setting) throw new Error('AI response is missing required fields for deep sea mode.');
+            return { animal1: parsed.creature, animal2: '', animal3: '', background: parsed.setting };
         } else { // faceoff
-            if (!parsed.animal1 || !parsed.animal2 || !parsed.background) {
-                throw new Error('AI response is missing required fields for faceoff mode.');
-            }
-            return {
-                animal1: parsed.animal1,
-                animal2: parsed.animal2,
-                animal3: '',
-                background: parsed.background
-            };
+            if (!parsed.animal1 || !parsed.animal2 || !parsed.background) throw new Error('AI response is missing required fields for faceoff mode.');
+            return { animal1: parsed.animal1, animal2: parsed.animal2, animal3: '', background: parsed.background };
         }
     } catch (e) {
         console.error("Failed to generate randomized content:", e);

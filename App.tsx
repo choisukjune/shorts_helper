@@ -15,8 +15,11 @@ import { SparklesIcon, MagicWandIcon, LinkIcon, DownloadIcon, UploadIcon } from 
 
 const initialAnimalOptions = ['Lion', 'Tiger', 'Grizzly Bear', 'Wolf', 'Rhinoceros', 'Elephant', 'Hippo', 'Gorilla', 'Orange Tabby Cat', 'Golden Retriever', 'Capybara', 'Red Panda', 'Fox', 'Eagle', 'Shark', 'Giant Snake', 'Enormous Turtle', 'Massive Alligator', 'Huge Wild Boar', 'Large Stag', 'Moose'];
 const initialBackgroundOptions = ['African Savanna', 'Muddy Riverbank', 'Grassy Lakeshore', 'Dense Jungle', 'Rocky Mountain Pass', 'Sun-drenched Meadow', 'Boreal Forest', 'Snowy Tundra', 'Bustling City Park'];
+const initialDeepSeaCreatureOptions = ['Giant Squid', 'Anglerfish', 'Vampire Squid', 'Goblin Shark', 'Colossal Squid', 'Frilled Shark', 'Blobfish', 'Dumbo Octopus'];
+const initialDeepSeaBackgroundOptions = ['Deck of a medium-sized fishing boat', 'A rusty, old submarine deck', 'A modern research vessel\'s deck', 'A large, wooden pirate ship deck', 'An abandoned oil rig platform'];
 
-type Tab = 'celebration' | 'faceoff' | 'selfie' | 'analyze';
+
+type Tab = 'celebration' | 'faceoff' | 'selfie' | 'analyze' | 'deepsea';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('celebration');
@@ -35,6 +38,8 @@ const App: React.FC = () => {
   const [animal2Options, setAnimal2Options] = useState<string[]>(initialAnimalOptions);
   const [animal3Options, setAnimal3Options] = useState<string[]>(initialAnimalOptions);
   const [backgroundOptions, setBackgroundOptions] = useState<string[]>(initialBackgroundOptions);
+  const [deepSeaCreatureOptions, setDeepSeaCreatureOptions] = useState<string[]>(initialDeepSeaCreatureOptions);
+  const [deepSeaBackgroundOptions, setDeepSeaBackgroundOptions] = useState<string[]>(initialDeepSeaBackgroundOptions);
 
   const [animal1, setAnimal1] = useState('Grizzly Bear');
   const [animal2, setAnimal2] = useState('Tiger');
@@ -78,43 +83,28 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
   }, []);
 
   const createSelfiePrompt = useCallback((selfieTaker: string, friend1: string, friend2: string, currentBackground: string): string => {
-    // Options for randomization to make prompts more varied
     const timeOptions = ['golden hour sunset', 'bright midday', 'early morning mist', 'dusk'];
     const expressionOptions = ['proud and confident', 'playful and mischievous', 'calm and serene', 'curiously adorable', 'joyful'];
     const lightingTypeOptions = ['golden-hour lighting', 'natural daylight', 'dramatic backlighting', 'soft ambient light'];
     
-    // Select random elements
     const time_of_day = timeOptions[Math.floor(Math.random() * timeOptions.length)];
     const expression_tone = expressionOptions[Math.floor(Math.random() * expressionOptions.length)];
     const lighting_type = lightingTypeOptions[Math.floor(Math.random() * lightingTypeOptions.length)];
     
-    // Determine lighting description based on time of day
     let lighting_description = '';
     switch (time_of_day) {
-        case 'golden hour sunset':
-            lighting_description = 'the warm glow casting long, soft shadows';
-            break;
-        case 'bright midday':
-            lighting_description = 'the clear, direct sunlight';
-            break;
-        case 'early morning mist':
-            lighting_description = 'soft, diffused light filtering through the mist';
-            break;
-        case 'dusk':
-            lighting_description = 'the cool, low light of twilight';
-            break;
-        default:
-            lighting_description = 'natural, ambient light';
+        case 'golden hour sunset': lighting_description = 'the warm glow casting long, soft shadows'; break;
+        case 'bright midday': lighting_description = 'the clear, direct sunlight'; break;
+        case 'early morning mist': lighting_description = 'soft, diffused light filtering through the mist'; break;
+        case 'dusk': lighting_description = 'the cool, low light of twilight'; break;
+        default: lighting_description = 'natural, ambient light';
     }
 
-    // Combine friends into a single string
     const secondary_animals = `a ${friend1.toLowerCase()} and a ${friend2.toLowerCase()}`;
-    // Generic background elements based on the environment
     const background_elements = `the natural features of the ${currentBackground.toLowerCase()}`;
     const main_animal = selfieTaker.toLowerCase();
     const environment = currentBackground.toLowerCase();
 
-    // Fill the template
     return `A hyper-realistic, cinematic scene of a playful ${main_animal} taking a selfie in ${environment} during ${time_of_day}.
 The ${main_animal} is in the foreground, holding one paw, fin, or limb toward the camera like it’s filming a vlog or snapping a selfie, with a ${expression_tone} expression.
 Behind it, ${secondary_animals} appear naturally in the background, posing or interacting with curiosity, adding a fun and friendly vibe.
@@ -128,7 +118,6 @@ Ultra-detailed 8K resolution, shallow depth of field, realistic wildlife photogr
     const friend1Short = getShortAnimalName(friend1);
     const friend2Short = getShortAnimalName(friend2);
 
-    // Dynamic Elements for Variety
     const openings = [
       `The video begins with a shaky, handheld camera view, as if the ${selfieTaker.toLowerCase()} is adjusting the frame. It then turns the camera to its face, giving a cheerful expression.`,
       `The shot opens with a beautiful view of the ${currentBackground.toLowerCase()}. The ${selfieTaker.toLowerCase()}'s paw enters the frame, turning the camera around to reveal itself in a classic vlogger-style intro.`,
@@ -147,18 +136,39 @@ Ultra-detailed 8K resolution, shallow depth of field, realistic wildlife photogr
       `The video concludes with the ${selfieTakerShort} giving a final wave to the camera before turning it around to show the stunning sunset, ending the vlog for the day.`
     ];
     
-    // Select random elements
     const opening = openings[Math.floor(Math.random() * openings.length)];
     const friendIntroduction = friendIntroductions[Math.floor(Math.random() * friendIntroductions.length)];
     const ending = endings[Math.floor(Math.random() * endings.length)];
 
-    // Combine into a cohesive prompt
     return `Create a 15-second, ultra-realistic short video with a candid, travel vlog aesthetic.
 The scene is set in the ${currentBackground.toLowerCase()} during a beautiful golden hour.
 ${opening}
 ${friendIntroduction}
 ${ending}
 The entire video should feel authentic and unscripted, shot from the ${selfieTakerShort}'s perspective. Use natural environmental sounds, warm cinematic color grading, and a joyful, heartwarming tone.`;
+  }, []);
+
+  const createDeepSeaPrompt = useCallback((creature: string, setting: string): string => {
+    return `A hyper-realistic, ultra-detailed cinematic photograph of a giant ${creature.toLowerCase()} lying on the ${setting.toLowerCase()} in the open ocean. The camera angle is elevated and slightly forward-facing — about 35–45 degrees above the deck — showing the entire creature stretched across the wet surface. The creature’s skin glistens with seawater, and its massive limbs or tentacles spread naturally across the deck. Several fishermen in dark waterproof gear and rubber boots stand around it, holding ropes and inspecting the creature. The ship’s details and coiled ropes are clearly visible, with waves and a cloudy gray sky in the background. Lighting is overcast and diffused, creating soft realistic shadows and reflections. The overall tone is cinematic, photorealistic, and documentary-style, in 8K ultra-detailed resolution, perfectly composed from a slightly elevated, forward-facing perspective.`;
+  }, []);
+
+  const createDeepSeaVideoPrompt = useCallback((creature: string, setting: string): string => {
+      const reactions = [
+          "suddenly twitching one of its limbs, causing the fishermen to jump back in alarm",
+          "slowly opening a massive, alien-looking eye, which seems to stare directly at the camera",
+          "emitting a low, guttural sound that vibrates through the deck",
+          "leaking a strange, bioluminescent fluid from a small cut in its skin",
+          "its skin subtly changing colors in a hypnotic pattern"
+      ];
+      const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
+
+      return `Generate a surreal, ultra-realistic cinematic video based on the attached image.
+The scene is set on the ${setting.toLowerCase()} where several fishermen are cautiously inspecting a captured ${creature.toLowerCase()}.
+The creature, which appeared lifeless, is ${randomReaction}.
+The camera does a slow, dramatic push-in, focusing on the creature's texture and the fishermen's shocked expressions.
+The atmosphere is tense and filled with awe and fear.
+Overcast lighting, cinematic tone, gritty realism, 8K detail, shallow depth of field.
+The motion should be slow and suspenseful, with realistic sounds of the ocean, the creaking boat, and the startled gasps of the crew.`;
   }, []);
 
   const handleGenerate = useCallback(async () => {
@@ -177,6 +187,9 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
         } else if (activeTab === 'selfie') {
             newPrompt = createSelfiePrompt(animal1, animal2, animal3, background);
             newVideoPrompt = createSelfieVideoPrompt(animal1, animal2, animal3, background);
+        } else if (activeTab === 'deepsea') {
+            newPrompt = createDeepSeaPrompt(animal1, background);
+            newVideoPrompt = createDeepSeaVideoPrompt(animal1, background);
         } else {
             newPrompt = createFaceoffPrompt(animal1, animal2, background);
             newVideoPrompt = createFaceoffVideoPrompt(animal1, animal2, background);
@@ -195,7 +208,7 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
     } finally {
         setIsGenerating(false);
     }
-  }, [animal1, animal2, animal3, background, activeTab, isGenerating, isRandomizing, isAnalyzing, createCelebrationPrompt, createCelebrationVideoPrompt, createFaceoffPrompt, createFaceoffVideoPrompt, createSelfiePrompt, createSelfieVideoPrompt]);
+  }, [animal1, animal2, animal3, background, activeTab, isGenerating, isRandomizing, isAnalyzing, createCelebrationPrompt, createCelebrationVideoPrompt, createFaceoffPrompt, createFaceoffVideoPrompt, createSelfiePrompt, createSelfieVideoPrompt, createDeepSeaPrompt, createDeepSeaVideoPrompt]);
 
   const handleRandomize = useCallback(async () => {
     if (isRandomizing || isGenerating || isAnalyzing) return;
@@ -206,18 +219,22 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
 
     try {
       const { animal1: newAnimal1, animal2: newAnimal2, animal3: newAnimal3, background: newBackground } = await generateRandomizedContent(activeTab);
-
-      if (newBackground && !backgroundOptions.includes(newBackground)) {
-        setBackgroundOptions(prev => [newBackground, ...prev]);
+      
+      if (activeTab === 'deepsea') {
+        if (newBackground && !deepSeaBackgroundOptions.includes(newBackground)) {
+            setDeepSeaBackgroundOptions(prev => [newBackground, ...prev]);
+        }
+      } else {
+        if (newBackground && !backgroundOptions.includes(newBackground)) {
+            setBackgroundOptions(prev => [newBackground, ...prev]);
+        }
       }
       setBackground(newBackground);
 
       let finalPrompt: string, finalVideoPrompt: string;
       
       if (activeTab === 'celebration') {
-        if (newAnimal1 && !animal1Options.includes(newAnimal1)) {
-          setAnimal1Options(prev => [newAnimal1, ...prev]);
-        }
+        if (newAnimal1 && !animal1Options.includes(newAnimal1)) setAnimal1Options(prev => [newAnimal1, ...prev]);
         setAnimal1(newAnimal1);
         finalPrompt = createCelebrationPrompt(newAnimal1, newBackground);
         finalVideoPrompt = createCelebrationVideoPrompt(newAnimal1, newBackground);
@@ -230,13 +247,14 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
         setAnimal3(newAnimal3);
         finalPrompt = createSelfiePrompt(newAnimal1, newAnimal2, newAnimal3, newBackground);
         finalVideoPrompt = createSelfieVideoPrompt(newAnimal1, newAnimal2, newAnimal3, newBackground);
+      } else if (activeTab === 'deepsea') {
+        if (newAnimal1 && !deepSeaCreatureOptions.includes(newAnimal1)) setDeepSeaCreatureOptions(prev => [newAnimal1, ...prev]);
+        setAnimal1(newAnimal1);
+        finalPrompt = createDeepSeaPrompt(newAnimal1, newBackground);
+        finalVideoPrompt = createDeepSeaVideoPrompt(newAnimal1, newBackground);
       } else { // faceoff
-        if (newAnimal1 && !animal1Options.includes(newAnimal1)) {
-          setAnimal1Options(prev => [newAnimal1, ...prev]);
-        }
-        if (newAnimal2 && !animal2Options.includes(newAnimal2)) {
-          setAnimal2Options(prev => [newAnimal2, ...prev]);
-        }
+        if (newAnimal1 && !animal1Options.includes(newAnimal1)) setAnimal1Options(prev => [newAnimal1, ...prev]);
+        if (newAnimal2 && !animal2Options.includes(newAnimal2)) setAnimal2Options(prev => [newAnimal2, ...prev]);
         setAnimal1(newAnimal1);
         setAnimal2(newAnimal2);
         finalPrompt = createFaceoffPrompt(newAnimal1, newAnimal2, newBackground);
@@ -257,7 +275,7 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
     } finally {
       setIsRandomizing(false);
     }
-  }, [isRandomizing, isGenerating, isAnalyzing, activeTab, animal1Options, animal2Options, animal3Options, backgroundOptions, createCelebrationPrompt, createCelebrationVideoPrompt, createFaceoffPrompt, createFaceoffVideoPrompt, createSelfiePrompt, createSelfieVideoPrompt]);
+  }, [isRandomizing, isGenerating, isAnalyzing, activeTab, animal1Options, animal2Options, animal3Options, backgroundOptions, deepSeaCreatureOptions, deepSeaBackgroundOptions, createCelebrationPrompt, createCelebrationVideoPrompt, createFaceoffPrompt, createFaceoffVideoPrompt, createSelfiePrompt, createSelfieVideoPrompt, createDeepSeaPrompt, createDeepSeaVideoPrompt]);
 
   const handleAnalyzeShorts = useCallback(async () => {
     if (isAnalyzing || !shortsUrl) return;
@@ -408,13 +426,11 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
     });
 
     if (youtubeMeta) {
-        content += '--- YOUTUBE SHORTS META ---\n';
-        content += `--- ENGLISH ---\n`;
-        content += `Title: ${youtubeMeta.en.title}\n`;
-        content += `Description: ${youtubeMeta.en.description}\n\n`;
-        content += `--- HINDI ---\n`;
-        content += `Title: ${youtubeMeta.hi.title}\n`;
-        content += `Description: ${youtubeMeta.hi.description}\n`;
+        content += '--- YOUTUBE SHORTS META ---\n\n';
+        content += `English Title: ${youtubeMeta.en.title}\n`;
+        content += `Japanese Title: ${youtubeMeta.ja.title}\n\n`;
+        content += `English Description:\n${youtubeMeta.en.description}\n\n`;
+        content += `Japanese Description:\n${youtubeMeta.ja.description}\n`;
     }
 
     const sanitizeFilename = (title: string): string => {
@@ -470,6 +486,7 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
                 <TabButton tab="celebration" label="Celebration" />
                 <TabButton tab="faceoff" label="Face-off" />
                 <TabButton tab="selfie" label="Animal Selfie" />
+                <TabButton tab="deepsea" label="Deep Sea" />
                 <TabButton tab="analyze" label="Analyze Shorts" />
               </div>
 
@@ -542,6 +559,23 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
                 </div>
               )}
 
+              {activeTab === 'deepsea' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="creature-select" className="block text-sm font-medium text-gray-300 mb-2">Creature</label>
+                    <select id="creature-select" value={animal1} onChange={e => setAnimal1(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300">
+                      {deepSeaCreatureOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="setting-select" className="block text-sm font-medium text-gray-300 mb-2">Setting</label>
+                    <select id="setting-select" value={background} onChange={e => setBackground(e.target.value)} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-300">
+                      {deepSeaBackgroundOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'analyze' && (
                   <div className="flex flex-col gap-2">
                       <label htmlFor="shorts-url" className="block text-sm font-medium text-gray-300">YouTube Shorts URL</label>
@@ -557,186 +591,146 @@ The entire video should feel authentic and unscripted, shot from the ${selfieTak
                         <button
                           onClick={handleAnalyzeShorts}
                           disabled={isLoading || !shortsUrl}
-                          className="flex items-center justify-center px-6 py-3 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-teal-500"
+                          className="flex items-center justify-center px-6 py-3 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isAnalyzing ? (
-                            <>
-                              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Analyzing...
-                            </>
+                              <span className="animate-spin h-5 w-5 mr-3 border-t-2 border-b-2 border-white rounded-full"></span>
                           ) : (
-                            <>
                               <LinkIcon className="h-5 w-5 mr-2" />
-                              Analyze
-                            </>
                           )}
+                          <span>{isAnalyzing ? 'Analyzing...' : 'Analyze'}</span>
                         </button>
                       </div>
                   </div>
               )}
               
-              {(activeTab !== 'analyze') && (
-                <div className="flex flex-col sm:flex-row sm:justify-end gap-4 mt-2">
+              {activeTab !== 'analyze' && (
+                <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <button
                     onClick={handleGenerate}
                     disabled={isLoading}
-                    className="flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-indigo-500"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/30"
                   >
                     {isGenerating ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Generating...
-                      </>
+                        <span className="animate-spin h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></span>
                     ) : (
-                      <>
-                        <SparklesIcon className="h-5 w-5 mr-2" />
-                        Generate
-                      </>
+                        <SparklesIcon className="h-6 w-6" />
                     )}
+                    <span>{isGenerating ? 'Generating...' : 'Generate Prompts'}</span>
                   </button>
                   <button
                     onClick={handleRandomize}
                     disabled={isLoading}
-                    className="flex items-center justify-center px-6 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-purple-500"
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/30"
                   >
-                    {isRandomizing ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Randomizing...
-                      </>
+                     {isRandomizing ? (
+                        <span className="animate-spin h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></span>
                     ) : (
-                      <>
-                        <MagicWandIcon className="h-5 w-5 mr-2" />
-                        Randomize
-                      </>
+                        <MagicWandIcon className="h-6 w-6" />
                     )}
+                    <span>{isRandomizing ? 'Randomizing...' : 'Randomize with AI'}</span>
                   </button>
                 </div>
               )}
             </div>
           </div>
           
-          {error && <p className="text-red-400 text-center mt-6">{error}</p>}
+          {error && (
+            <div className="mt-8 bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg relative" role="alert">
+              <strong className="font-bold">Error: </strong>
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
+          
+          {(isLoading || scenes.length > 0) && (
+            <div className="mt-8">
+              {isLoading && !scenes.length && (
+                <div className="flex flex-col items-center justify-center gap-4 p-8 bg-gray-800/50 rounded-xl border border-gray-700">
+                    <div className="animate-spin h-10 w-10 border-4 border-t-indigo-500 border-r-indigo-500 border-b-gray-600 border-l-gray-600 rounded-full"></div>
+                    <p className="text-lg text-gray-400">AI is thinking, please wait...</p>
+                </div>
+              )}
 
-          {scenes.length > 0 && (
-            <div className="mt-8 space-y-6">
-              <div className="flex justify-between items-center pb-4 border-b border-gray-700">
-                <h2 className="text-2xl font-bold text-gray-100">Generated Content</h2>
-                <button
-                  onClick={handleSaveAll}
-                  aria-label="Save all generated content to a file"
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors duration-300"
-                >
-                  <DownloadIcon className="h-5 w-5" />
-                  Save All
-                </button>
-              </div>
-              <div className="space-y-12 pt-6">
-                {scenes.map((scene, index) => (
-                  <div key={`scene-${index}`} className="bg-gray-800/50 p-6 rounded-lg border border-gray-700">
-                    <h3 className="text-2xl font-bold text-indigo-400 mb-6">Scene {index + 1}</h3>
-                    
-                    {scene.imageBase64 && (
-                      <div className="mb-6">
-                        <h4 className="text-lg font-semibold text-gray-200 mb-3">Generated Image</h4>
-                        <img
-                          src={`data:image/jpeg;base64,${scene.imageBase64}`}
-                          alt={`Generated image for Scene ${index + 1}`}
-                          className="rounded-lg w-full max-w-md mx-auto shadow-lg"
-                        />
+              {scenes.length > 0 && (
+                <div className="flex flex-col gap-8">
+                  { (thumbnailBase64 || scenes.some(s => s.imageBase64)) && (
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSaveAll}
+                        className="flex items-center justify-center gap-2 px-5 py-2 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={scenes.length === 0 && !youtubeMeta}
+                      >
+                        <DownloadIcon className="h-5 w-5" />
+                        <span>Save All</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {scenes.map((scene, index) => (
+                    <div key={index} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl shadow-indigo-500/10">
+                      <h3 className="text-2xl font-bold mb-4 text-gray-200 bg-gradient-to-r from-purple-400 to-indigo-500 text-transparent bg-clip-text">Scene {index + 1}</h3>
+                      <div className="flex flex-col lg:flex-row gap-6">
+                        <div className="flex-1 flex flex-col gap-4">
+                           <CopyableField title="Image Prompt" content={scene.imagePrompt} />
+                           <CopyableField title="Video Prompt" content={scene.videoPrompt} />
+                        </div>
+                        {(index === 0 && thumbnailBase64 || scene.imageBase64) && (
+                            <div className="lg:w-1/3">
+                                <h4 className="text-lg font-semibold text-gray-200 mb-3">Generated Image</h4>
+                                <img src={`data:image/jpeg;base64,${scene.imageBase64 || thumbnailBase64}`} alt={`Generated scene ${index + 1}`} className="rounded-lg border-2 border-gray-600" />
+                            </div>
+                        )}
                       </div>
-                    )}
-
-                    <div className="space-y-6">
-                      <CopyableField 
-                        title="Image Prompt"
-                        content={scene.imagePrompt}
-                        copyLabel="Copy Prompt"
-                        variant="prompt"
-                      />
-                      <CopyableField 
-                        title="Video Prompt"
-                        content={scene.videoPrompt}
-                        copyLabel="Copy Prompt"
-                        variant="prompt"
-                      />
                     </div>
+                  ))}
+
+                  {youtubeMeta && (
+                      <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl shadow-purple-500/10">
+                        <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-indigo-500 text-transparent bg-clip-text">YouTube Shorts Meta</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="text-xl font-semibold text-gray-200 mb-3">English</h4>
+                                <div className="flex flex-col gap-4">
+                                  <CopyableField title="Title" content={youtubeMeta.en.title} variant="meta" />
+                                  <CopyableField title="Description" content={youtubeMeta.en.description} variant="meta" displayAsCode={true} />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xl font-semibold text-gray-200 mb-3">Japanese</h4>
+                                <div className="flex flex-col gap-4">
+                                  <CopyableField title="Title" content={youtubeMeta.ja.title} variant="meta" />
+                                  <CopyableField title="Description" content={youtubeMeta.ja.description} variant="meta" displayAsCode={true} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button
+                        onClick={handleGenerateNextScene}
+                        disabled={isGeneratingNextScene || isLoading || isUploading}
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/30"
+                    >
+                      {isGeneratingNextScene ? <span className="animate-spin h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></span> : <MagicWandIcon className="h-6 w-6" />}
+                      <span>{isGeneratingNextScene ? 'Generating...' : 'Generate Next Scene'}</span>
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading || isLoading || isGeneratingNextScene}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-500 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-sky-500/30"
+                    >
+                      {isUploading ? <span className="animate-spin h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></span> : <UploadIcon className="h-6 w-6" />}
+                      <span>{isUploading ? 'Uploading...' : 'Upload & Generate Next'}</span>
+                    </button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageUploadAndGenerateNextScene}
+                        className="hidden"
+                        accept="image/png, image/jpeg"
+                    />
                   </div>
-                ))}
-                
-                {youtubeMeta && (
-                    <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700">
-                        <h3 className="text-2xl font-bold text-purple-400 mb-6">YouTube Shorts Meta</h3>
-                         <CopyableField
-                            content={`--- ENGLISH ---\nTitle: ${youtubeMeta.en.title}\nDescription: ${youtubeMeta.en.description}\n\n--- HINDI ---\nTitle: ${youtubeMeta.hi.title}\nDescription: ${youtubeMeta.hi.description}`}
-                            copyLabel="Copy All"
-                            variant="meta"
-                            displayAsCode={true}
-                        />
-                    </div>
-                )}
-              </div>
-
-              {activeTab === 'analyze' && (
-                <div className="mt-8 flex justify-center flex-wrap gap-4">
-                  <button
-                    onClick={handleGenerateNextScene}
-                    disabled={isGeneratingNextScene || isLoading || isUploading}
-                    className="flex items-center justify-center px-8 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-green-500"
-                  >
-                    {isGeneratingNextScene ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <SparklesIcon className="h-5 w-5 mr-2" />
-                        Generate Next Scene
-                      </>
-                    )}
-                  </button>
-
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUploadAndGenerateNextScene}
-                    accept="image/png, image/jpeg"
-                    className="hidden"
-                    disabled={isGeneratingNextScene || isLoading || isUploading}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isGeneratingNextScene || isLoading || isUploading}
-                    className="flex items-center justify-center px-8 py-4 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-orange-500"
-                  >
-                    {isUploading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <UploadIcon className="h-5 w-5 mr-2" />
-                        Upload &amp; Generate
-                      </>
-                    )}
-                  </button>
 
                 </div>
               )}
