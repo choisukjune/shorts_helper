@@ -330,7 +330,10 @@ export const generateNextSceneFromUploadedImage = async (
     };
 };
 
-export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff' | 'selfie' | 'deepsea'): Promise<{
+export const generateRandomizedContent = async (
+    mode: 'celebration' | 'faceoff' | 'selfie' | 'deepsea',
+    existingOptions?: string[]
+): Promise<{
     animal1: string;
     animal2: string;
     animal3: string;
@@ -371,7 +374,10 @@ export const generateRandomizedContent = async (mode: 'celebration' | 'faceoff' 
             },
             required: ['creature', 'setting']
         };
-        contents = `Your task is to provide a creative and unique combination for a cinematic scene. Suggest a real, giant, and visually strange or terrifying deep-sea creature that has been captured and brought to the surface. Also suggest the specific surface setting where it is lying. The combination should be dramatic and evocative.`;
+        const exclusionList = (existingOptions && existingOptions.length > 0)
+            ? ` Do not suggest any of the following: ${existingOptions.join(', ')}.`
+            : '';
+        contents = `Your task is to provide a creative and unique combination for a cinematic scene. Suggest a real, giant, and visually strange or terrifying deep-sea creature that has been captured and brought to the surface. Also suggest the specific surface setting where it is lying. The combination should be dramatic and evocative.${exclusionList}`;
      } else { // faceoff
         schema = {
           type: Type.OBJECT,
