@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import { YoutubeMeta, Scene } from './types';
 import { 
@@ -20,6 +19,7 @@ const initialDeepSeaBackgroundOptions = ['Deck of a medium-sized fishing boat', 
 
 
 type Tab = 'celebration' | 'faceoff' | 'selfie' | 'analyze' | 'deepsea';
+type DeepSeaVideoStyle = 'cinematic' | 'selfie';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('celebration');
@@ -46,6 +46,7 @@ const App: React.FC = () => {
   const [animal3, setAnimal3] = useState('Rhinoceros');
   const [background, setBackground] = useState('Muddy Riverbank');
   const [shortsUrl, setShortsUrl] = useState('');
+  const [deepSeaVideoStyle, setDeepSeaVideoStyle] = useState<DeepSeaVideoStyle>('cinematic');
   
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
@@ -69,6 +70,7 @@ const App: React.FC = () => {
       case 'deepsea':
         setAnimal1(initialDeepSeaCreatureOptions[0]);
         setBackground(initialDeepSeaBackgroundOptions[0]);
+        setDeepSeaVideoStyle('cinematic');
         break;
       case 'analyze':
         // No inputs to reset for analyze tab
@@ -112,11 +114,15 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
   }, []);
 
   const createDeepSeaPrompt = useCallback((creature: string, setting: string): string => {
-      return `Dramatic vertical shot from the stern of a ${setting.toLowerCase()}, looking forward towards the bow. The massive head of a colossal deep-sea creature, a ${creature.toLowerCase()}, is in the foreground, its body stretching away down the center of the wet, green deck. Six fishermen in dark, wet rain gear and boots stand symmetrically on either side, framing the scene. The boat's central wooden mast rises against a bleak, overcast sky. The atmosphere is one of grim triumph after a monumental struggle. Natural, diffused daylight. Ultra-realistic, documentary photography style, sharp focus, immense detail, 8K, ultra real photo.`;
+      return `First-person POV shot from the eyes of a fisherman standing on the wet deck of a ${setting.toLowerCase()}. In front of you, the colossal head of a deep-sea creature, a ${creature.toLowerCase()}, lies immense and alien-like, its body stretching away down the center of the deck. Your own gloved hands might be visible at the bottom of the frame, gripping a railing. Other fishermen in dark, wet rain gear and boots cautiously circle the massive catch, their faces a mix of awe and exhaustion. The boat's mast looms overhead, with the view dominated by the deck and the creature, under a bleak, overcast sky. The atmosphere is one of grim triumph after a monumental struggle. Ultra-realistic, wide-angle lens, body-cam footage style, sharp focus, immense detail, 8K, ultra real photo.`;
   }, []);
 
   const createDeepSeaVideoPrompt = useCallback((creature: string, setting: string): string => {
     return `Fishermen in navy waterproof suits stand on the wet ${setting.toLowerCase()}, cautiously surrounding a massive glowing deep-sea creature that resembles a hybrid between a ${creature} and an alien being. The creature twitches slightly, splashing water around as one fisherman steps back in shock while another records the moment on his phone. The crew exchanges nervous laughter as waves crash rhythmically against the boat. The camera begins with a steady hover from a 45-degree elevated angle, slowly panning across the glistening, wet deck, capturing the detailed marine textures and soaked ropes. It then glides closer, focusing on the fishermen’s varied reactions—shock, curiosity, and humor—zooming in on the glowing creature’s subtle movements. The ocean behind the boat emits a faint bioluminescent glow beneath an overcast sky, adding to the mysterious atmosphere. The scene includes natural sounds of the ocean waves crashing, water splashing as the creature moves, and the fishermen’s spontaneous, realistic dialogue filled with surprise and laughter. This is shot in ultra-realistic 8K quality with cinematic lighting, perfectly blending documentary authenticity and comedic tension in a photorealistic oceanic setting.`;
+  }, []);
+
+  const createDeepSeaSelfieVideoPrompt = useCallback((creature: string, setting: string): string => {
+    return `First-person POV video selfie from a phone held by a young, excited fisherman in a yellow rain slicker. He's grinning wildly, with wind-blown hair, looking directly at the camera. Behind him, sprawled across the wet ${setting.toLowerCase()}, is the colossal, bizarre deep-sea creature, a ${creature}. The creature's alien-like textures glisten under the boat's lights. In the background, other crew members are visible, some pointing in disbelief, others laughing nervously. The fisherman holding the phone yells "Look at the size of this thing! Unbelievable!" The video is shaky and dynamic, capturing the chaotic energy of the moment. Sounds of the roaring ocean, the creaking boat, and the excited shouts of the crew are prominent. The lighting is harsh and direct, simulating a phone's flashlight against the dark, overcast sky. This is shot to look like authentic, found-footage style phone recording in ultra-realistic 8K quality.`;
   }, []);
 
   const handleGenerate = async () => {
@@ -145,7 +151,9 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
           concept = `Selfie with ${animal1}, ${animal2}, and ${animal3}`;
       } else if (activeTab === 'deepsea') {
         imagePrompt = createDeepSeaPrompt(animal1, background);
-        videoPrompt = createDeepSeaVideoPrompt(animal1, background);
+        videoPrompt = deepSeaVideoStyle === 'cinematic'
+          ? createDeepSeaVideoPrompt(animal1, background)
+          : createDeepSeaSelfieVideoPrompt(animal1, background);
         concept = `Giant ${animal1} captured`;
       } else {
         return;
@@ -448,6 +456,33 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
                   <option key={option} value={option}>{option}</option>
                 ))}
               </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Video Prompt Style</label>
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setDeepSeaVideoStyle('cinematic')}
+                        className={`px-4 py-2 text-sm rounded-md transition-colors duration-200 ${
+                            deepSeaVideoStyle === 'cinematic' 
+                                ? 'bg-indigo-600 text-white shadow-md' 
+                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                        }`}
+                    >
+                        Cinematic
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setDeepSeaVideoStyle('selfie')}
+                        className={`px-4 py-2 text-sm rounded-md transition-colors duration-200 ${
+                            deepSeaVideoStyle === 'selfie' 
+                                ? 'bg-indigo-600 text-white shadow-md' 
+                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                        }`}
+                    >
+                        Selfie
+                    </button>
+                </div>
             </div>
           </div>
         );
