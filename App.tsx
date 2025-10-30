@@ -14,12 +14,23 @@ import { SparklesIcon, MagicWandIcon, LinkIcon, DownloadIcon, UploadIcon } from 
 
 const initialAnimalOptions = ['Lion', 'Tiger', 'Grizzly Bear', 'Wolf', 'Rhinoceros', 'Elephant', 'Hippo', 'Gorilla', 'Orange Tabby Cat', 'Golden Retriever', 'Capybara', 'Red Panda', 'Fox', 'Eagle', 'Shark', 'Giant Snake', 'Enormous Turtle', 'Massive Alligator', 'Huge Wild Boar', 'Large Stag', 'Moose'];
 const initialBackgroundOptions = ['African Savanna', 'Muddy Riverbank', 'Grassy Lakeshore', 'Dense Jungle', 'Rocky Mountain Pass', 'Sun-drenched Meadow', 'Boreal Forest', 'Snowy Tundra', 'Bustling City Park'];
-const initialDeepSeaCreatureOptions = ['Giant Squid', 'Anglerfish', 'Vampire Squid', 'Goblin Shark', 'Colossal Squid', 'Frilled Shark', 'Blobfish', 'Dumbo Octopus'];
+const initialDeepSeaCreatureOptions = [
+    'Giant Squid', 'Anglerfish', 'Vampire Squid', 'Goblin Shark', 'Colossal Squid', 
+    'Frilled Shark', 'Blobfish', 'Dumbo Octopus', 'Harp Sponge', 'Ping-Pong Tree Sponge', 
+    'Helmet Jellyfish', 'Marrus Orthocanna', 'Lampocteis cruentiventer', 'Cestum Veneris', 
+    'Pigbutt Worm', 'Eulagisca gigantea', 'Clione limacina', 'Scaly-foot Gastropod', 
+    'Cirroctopus', 'Sepioloidea pacifica', 'Cockatoo Squid', 'Magnapinna Squid', 
+    'Gigantocypris', 'Gnathophausia ingens', 'Cystisoma', 'Bathynomus giganteus', 
+    'Fan Lobster', 'Giant Ghost Shrimp', 'Yeti Crab', 'Sea Pig', 'Basket Star', 
+    'Octacnemus', 'Salp', 'Snipe Eel', 'Monognathus', 'Pelican Eel', 'Gulper Eel', 
+    'Barreleye Fish', 'Hatchetfish', 'Viperfish', 'Trapjaw Fish', 'Black Dragonfish', 
+    'Tripod Fish', 'Gigantura', 'Needle Mat Anglerfish', 'Fanfin Anglerfish'
+];
 const initialDeepSeaBackgroundOptions = ['Deck of a medium-sized fishing boat', 'A rusty, old submarine deck', 'A modern research vessel\'s deck', 'A large, wooden pirate ship deck', 'An abandoned oil rig platform'];
 
 
 type Tab = 'celebration' | 'faceoff' | 'selfie' | 'analyze' | 'deepsea';
-type DeepSeaVideoStyle = 'cinematic' | 'selfie';
+type DeepSeaVideoStyle = 'cinematic' | 'selfie' | 'groupPhoto';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('celebration');
@@ -125,6 +136,10 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
     return `First-person POV video selfie from a phone held by a young, excited fisherman in a yellow rain slicker. He's grinning wildly, with wind-blown hair, looking directly at the camera. Behind him, sprawled across the wet ${setting.toLowerCase()}, is the colossal, bizarre deep-sea creature, a ${creature}. The creature's alien-like textures glisten under the boat's lights. In the background, other crew members are visible, some pointing in disbelief, others laughing nervously. The fisherman holding the phone yells "Look at the size of this thing! Unbelievable!" The video is shaky and dynamic, capturing the chaotic energy of the moment. Sounds of the roaring ocean, the creaking boat, and the excited shouts of the crew are prominent. The lighting is harsh and direct, simulating a phone's flashlight against the dark, overcast sky. This is shot to look like authentic, found-footage style phone recording in ultra-realistic 8K quality.`;
   }, []);
 
+  const createDeepSeaGroupPhotoVideoPrompt = useCallback((creature: string, setting: string): string => {
+    return `A shaky, wide-angle video shot from the perspective of one fisherman trying to capture a celebratory group photo. On the wet ${setting.toLowerCase()}, a group of proud fishermen in rain gear are crammed together, cheering and posing around their monumental catch: a colossal deep-sea ${creature.toLowerCase()}. They are giving thumbs-ups, patting each other on the back, and laughing boisterously. The massive creature lies in the center, alien and glistening under the harsh deck lights. The fisherman filming shouts "Alright everyone, squeeze in!". The video captures the raw, triumphant, and chaotic energy of the moment with sounds of excited shouting, the crashing of waves, and the boat creaking. This is shot to look like a realistic 8K phone video recording of the celebration.`;
+  }, []);
+
   const handleGenerate = async () => {
     setError(null);
     setIsGenerating(true);
@@ -151,9 +166,18 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
           concept = `Selfie with ${animal1}, ${animal2}, and ${animal3}`;
       } else if (activeTab === 'deepsea') {
         imagePrompt = createDeepSeaPrompt(animal1, background);
-        videoPrompt = deepSeaVideoStyle === 'cinematic'
-          ? createDeepSeaVideoPrompt(animal1, background)
-          : createDeepSeaSelfieVideoPrompt(animal1, background);
+        switch (deepSeaVideoStyle) {
+          case 'selfie':
+            videoPrompt = createDeepSeaSelfieVideoPrompt(animal1, background);
+            break;
+          case 'groupPhoto':
+            videoPrompt = createDeepSeaGroupPhotoVideoPrompt(animal1, background);
+            break;
+          case 'cinematic':
+          default:
+            videoPrompt = createDeepSeaVideoPrompt(animal1, background);
+            break;
+        }
         concept = `Giant ${animal1} captured`;
       } else {
         return;
@@ -481,6 +505,17 @@ The motion should feel immersive, as if captured by a handheld camera with subtl
                         }`}
                     >
                         Selfie
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setDeepSeaVideoStyle('groupPhoto')}
+                        className={`px-4 py-2 text-sm rounded-md transition-colors duration-200 ${
+                            deepSeaVideoStyle === 'groupPhoto' 
+                                ? 'bg-indigo-600 text-white shadow-md' 
+                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                        }`}
+                    >
+                        Group Photo
                     </button>
                 </div>
             </div>
