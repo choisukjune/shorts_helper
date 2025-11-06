@@ -1,9 +1,7 @@
-
 export interface YoutubeMeta {
   en: { title: string; description: string; };
-  ko?: { title: string; description: string; };
-  jp?: { title: string; description: string; };
-  tags?: string;
+  jp: { title: string; description: string; };
+  tags: string;
 }
 
 export interface GeneratedImage {

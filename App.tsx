@@ -1,9 +1,7 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import { YoutubeMeta, Scene, GeneratedImage } from './types';
 import { 
   generateYoutubeMeta, 
-  generateAthleteYoutubeMeta,
   generatePromptsFromImage, 
   generatePromptsFromImageV2,
   generateVideoStartFrames,
@@ -20,7 +18,7 @@ import {
 import CopyableField from './components/CopyableField';
 import { SparklesIcon, MagicWandIcon, LinkIcon, DownloadIcon, UploadIcon, RefreshIcon } from './components/icons';
 
-const initialAnimalOptions = ['Lion', 'Tiger', 'Grizzly Bear', 'Wolf', 'Rhinoceros', 'Elephant', 'Hippo', 'Gorilla', 'Orange Tabby Cat', 'Golden Retriever', 'Capybara', 'Red Panda', 'Fox', 'Eagle', 'Shark', 'Giant Snake', 'Enormous Turtle', 'Massive Alligator', 'Huge Wild Boar', 'Large Stag', 'Moose'];
+const initialAnimalOptions = ['Lion', 'Tiger', 'Grizzly Bear', 'Wolf', 'Rhinoceros', 'Elephant', 'Hippo', 'Gorilla', 'Orange Tabby Cat', 'Golden Retriever', 'Capybara', 'Red Panda', 'Fox', 'Eagle', 'Shark', 'Giant Snake', 'Enormous Turtle', 'Massive Alligator', 'Huge Wild Boar', 'Large Stag', 'Moose', 'Rabbit', 'Chick', 'Puppy', 'Duckling', 'Baby Bird'];
 const initialBackgroundOptions = ['Misty Redwood Forest at dawn', 'Sun-scorched Serengeti plains under a vast sky', 'Icy Arctic glacier field with cracking ice', 'Volcanic plains of Iceland with black sand', 'Lush, dense Amazonian rainforest floor', 'Dramatic cliffside overlooking a stormy sea', 'Cherry blossom grove in a Japanese garden', 'Vibrant, arid Australian outback'];
 const initialDeepSeaCreatureOptions = [
     'Giant Squid', 'Anglerfish', 'Vampire Squid', 'Goblin Shark', 'Colossal Squid', 
@@ -302,7 +300,7 @@ Style: hyper-realistic, gritty, high-energy documentary style with vibrant, high
       case 'checking-gear': stanceContext = 'on the court, checking her gear,'; break;
     }
 
-    return `An ultra-realistic, cinematic, ${framingShot} action shot of a female ${currentCountry.toLowerCase()} national volleyball player. The scene is on a professional, brightly lit indoor court. She is ${stanceContext} in the middle of ${currentPose.toLowerCase()}. Her expression is one of intense focus and determination, with beads of sweat on her face and arms, highlighting the physical exertion. Her uniform is modern and athletic. The background is softly blurred but clearly depicts a packed stadium with spectators and sports photographers with large telephoto lenses aimed at the action. The scene feels authentic and dynamic, captured in 8K cinematic sports photography style, with dramatic lighting, perfect composition, and the athlete filling the 9:16 frame. ultra real photo.`;
+    return `An ultra-realistic, cinematic, ${framingShot} action shot of a female ${currentCountry.toLowerCase()} national volleyball player. The scene is on a professional, brightly lit indoor court. She is ${stanceContext} in the middle of ${currentPose.toLowerCase()}. Her expression is one of intense focus and determination, with beads of sweat on her face and arms, highlighting the physical exertion. She wears a highly realistic, modern two-piece volleyball uniform that prominently features the ${currentCountry.toLowerCase()} national flag emblem. The uniform, made of high-performance, sweat-wicking fabric like spandex and mesh, fits snugly to her athletic form, showing subtle wrinkles and glistening with sweat under the bright stadium lights. The background is softly blurred but clearly depicts a packed stadium with spectators and sports photographers with large telephoto lenses aimed at the action. The scene feels authentic and dynamic, captured in 8K cinematic sports photography style, with dramatic lighting, perfect composition, and the athlete filling the 9:16 frame. ultra real photo.`;
   }, []);
 
   const createVolleyballVideoPrompt = useCallback((
@@ -366,7 +364,7 @@ The video ends with a point being scored or a transition back to the bench, foll
       case 'checking-gear': stanceContext = 'on the pool deck, checking her goggles or swim cap,'; break;
     }
 
-    return `An ultra-realistic, cinematic, ${framingShot} action shot of a female ${currentCountry.toLowerCase()} national swimmer. The scene is in a professional, brightly lit indoor aquatic center. She is ${stanceContext} in the middle of ${currentAction.toLowerCase()}. Her expression is one of intense focus and determination, with beads of sweat and water droplets on her face and arms, highlighting the physical exertion. She wears a modern, athletic two-piece swimsuit. She is not wearing a swim cap, and her wet hair is visible. The background is softly blurred but clearly depicts a packed aquatic center with spectators and sports photographers with large telephoto lenses aimed at the action. The scene feels authentic and dynamic, captured in 8K cinematic sports photography style, with dramatic lighting, perfect composition, and the athlete filling the 9:16 frame. ultra real photo.`;
+    return `An ultra-realistic, cinematic, ${framingShot} action shot of a female ${currentCountry.toLowerCase()} national swimmer. The scene is in a professional, brightly lit indoor aquatic center. She is ${stanceContext} in the middle of ${currentAction.toLowerCase()}. Her expression is one of intense focus and determination, with beads of sweat and water droplets on her face and arms, highlighting the physical exertion. She wears a highly realistic, modern two-piece competition swimsuit that prominently features the ${currentCountry.toLowerCase()} national flag emblem. The swimsuit, made of sleek, water-repellent performance fabric, fits snugly to her athletic form, with water droplets clinging to the surface and her skin. She is not wearing a swim cap, and her wet hair is visible. The background is softly blurred but clearly depicts a packed aquatic center with spectators and sports photographers with large telephoto lenses aimed at the action. The scene feels authentic and dynamic, captured in 8K cinematic sports photography style, with dramatic lighting, perfect composition, and the athlete filling the 9:16 frame. ultra real photo.`;
   }, []);
 
   const createSwimmingVideoPrompt = useCallback((
@@ -427,7 +425,7 @@ The video ends with her hand touching the wall, followed by a tight shot on her 
       case 'checking-gear': stanceContext = 'on the track, checking her running shoes,'; break;
     }
 
-    return `An ultra-realistic, cinematic, ${framingShot} action shot of a female ${currentCountry.toLowerCase()} national track and field athlete. The scene is in a professional, brightly lit outdoor track and field stadium. She is ${stanceContext} in the middle of ${currentAction.toLowerCase()}. Her expression is one of intense focus and determination, with beads of sweat on her face and arms, highlighting the physical exertion. She wears a modern, athletic two-piece track uniform. The background is softly blurred but clearly depicts a packed stadium with spectators and sports photographers with large telephoto lenses aimed at the action. The scene feels authentic and dynamic, captured in 8K cinematic sports photography style, with dramatic lighting, perfect composition, and the athlete filling the 9:16 frame. ultra real photo.`;
+    return `An ultra-realistic, cinematic, ${framingShot} action shot of a female ${currentCountry.toLowerCase()} national track and field athlete. The scene is in a professional, brightly lit outdoor track and field stadium. She is ${stanceContext} in the middle of ${currentAction.toLowerCase()}. Her expression is one of intense focus and determination, with beads of sweat on her face and arms, highlighting the physical exertion. She wears a highly realistic, modern two-piece track uniform that prominently features the ${currentCountry.toLowerCase()} national flag emblem. The uniform, made of lightweight, aerodynamic fabric, fits snugly to her athletic form, showing subtle wrinkles from movement and glistening with sweat under the bright stadium sun. The background is softly blurred but clearly depicts a packed stadium with spectators and sports photographers with large telephoto lenses aimed at the action. The scene feels authentic and dynamic, captured in 8K cinematic sports photography style, with dramatic lighting, perfect composition, and the athlete filling the 9:16 frame. ultra real photo.`;
   }, []);
 
   const createTrackVideoPrompt = useCallback((
@@ -530,12 +528,7 @@ The video ends with her crossing the finish line, followed by a tight shot on he
 
       setScenes([{ imagePrompt, videoPrompt, generatedImages: [] }]);
       
-      let meta;
-      if (['volleyball', 'swimming', 'track'].includes(activeTab)) {
-          meta = await generateAthleteYoutubeMeta(concept);
-      } else {
-          meta = await generateYoutubeMeta(concept);
-      }
+      const meta = await generateYoutubeMeta(concept);
       setYoutubeMeta(meta);
 
     } catch (e: any) {
@@ -698,12 +691,10 @@ The video ends with her crossing the finish line, followed by a tight shot on he
     
     if (youtubeMeta) {
         content += '--- YOUTUBE METADATA ---\n\n';
-        const secondaryMeta = youtubeMeta.ko;
-        content += `${youtubeMeta.en.title}${secondaryMeta ? ` ${secondaryMeta.title}` : ''}\n\n`;
+        content += `${youtubeMeta.en.title} ${youtubeMeta.jp.title}\n`;
+        content += `${youtubeMeta.tags}\n\n`;
         content += `${youtubeMeta.en.description}\n\n`;
-        if (secondaryMeta) {
-          content += `${secondaryMeta.description}\n\n`;
-        }
+        content += `${youtubeMeta.jp.description}\n\n`;
     }
 
     if (scenes.length > 0) {
@@ -1363,7 +1354,7 @@ The video ends with her crossing the finish line, followed by a tight shot on he
             >
               {isAnalyzing ? (
                 <div className="flex flex-col items-center gap-2">
-                  <svg className="animate-spin h-8 w-8 text-white" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -1494,16 +1485,7 @@ The video ends with her crossing the finish line, followed by a tight shot on he
                         <div className="grid grid-cols-1 gap-6">
                             <CopyableField 
                                 title="Title & Description" 
-                                content={(() => {
-                                    if (['volleyball', 'swimming', 'track'].includes(activeTab) && youtubeMeta.jp && youtubeMeta.tags) {
-                                        // New format for athlete tabs
-                                        return `${youtubeMeta.en.title}${youtubeMeta.jp.title}\n${youtubeMeta.tags}\n\n${youtubeMeta.jp.description}\n\n${youtubeMeta.en.description}`;
-                                    }
-                                    
-                                    // Original format for other tabs
-                                    const secondaryMeta = youtubeMeta.ko;
-                                    return `${youtubeMeta.en.title}${secondaryMeta ? ` ${secondaryMeta.title}` : ''}\n\n${youtubeMeta.en.description}${secondaryMeta ? `\n\n${secondaryMeta.description}` : ''}`;
-                                })()} 
+                                content={`${youtubeMeta.en.title} ${youtubeMeta.jp.title}\n${youtubeMeta.tags}\n\n${youtubeMeta.en.description}\n\n${youtubeMeta.jp.description}`}
                                 variant="meta" 
                                 displayAsCode
                             />

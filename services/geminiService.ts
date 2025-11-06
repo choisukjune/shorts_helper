@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { YoutubeMeta, Scene } from '../types';
 
@@ -52,49 +51,6 @@ export const generateYoutubeMeta = async (videoConcept: string): Promise<Youtube
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const model = 'gemini-2.5-flash';
-        const secondaryLang = 'Korean';
-
-        const schema = {
-            type: Type.OBJECT,
-            properties: {
-                english_title: { type: Type.STRING, description: 'A catchy, viral YouTube Shorts title in English (max 60 characters).' },
-                english_description: { type: Type.STRING, description: 'A brief, engaging YouTube Shorts description in English, including 3-5 relevant hashtags.' },
-                korean_title: { type: Type.STRING, description: `A catchy, viral YouTube Shorts title in ${secondaryLang} (max 60 characters).` },
-                korean_description: { type: Type.STRING, description: `A brief, engaging YouTube Shorts description in ${secondaryLang}, including 3-5 relevant hashtags.` },
-            },
-            required: ['english_title', 'english_description', 'korean_title', 'korean_description']
-        };
-        const contents = `Generate a catchy, viral YouTube Shorts title and a brief, engaging description (including relevant hashtags) for the following video concept. Provide versions in both English and ${secondaryLang}. The video is intense, brutal, and cinematic.
-
-        Video Concept: "${videoConcept}"`;
-
-        const response = await ai.models.generateContent({
-            model,
-            contents,
-            config: { responseMimeType: "application/json", responseSchema: schema },
-        });
-        
-        const jsonStr = cleanJsonString(response.text);
-        if (!jsonStr) throw new Error("AI returned an empty response.");
-        const parsed = JSON.parse(jsonStr);
-
-        const result: YoutubeMeta = {
-            en: { title: parsed.english_title, description: parsed.english_description },
-            ko: { title: parsed.korean_title, description: parsed.korean_description },
-        };
-
-        return result;
-
-    } catch (e) {
-        console.error("Failed to generate YouTube meta:", e);
-        throw new Error("Failed to generate YouTube metadata.");
-    }
-}
-
-export const generateAthleteYoutubeMeta = async (videoConcept: string): Promise<YoutubeMeta | null> => {
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const model = 'gemini-2.5-flash';
         const secondaryLang = 'Japanese';
 
         const schema = {
@@ -108,7 +64,7 @@ export const generateAthleteYoutubeMeta = async (videoConcept: string): Promise<
             },
             required: ['english_title', 'english_description', 'japanese_title', 'japanese_description', 'tags']
         };
-        const contents = `Generate a catchy, viral YouTube Shorts title, a brief engaging description, and relevant hashtags for the following video concept. Provide versions in both English and ${secondaryLang}. The video is a cinematic sports clip.
+        const contents = `Generate a catchy, viral YouTube Shorts title, a brief engaging description, and relevant hashtags for the following video concept. Provide versions in both English and ${secondaryLang}. The video is intense, brutal, and cinematic.
 
         Video Concept: "${videoConcept}"`;
 
@@ -131,11 +87,10 @@ export const generateAthleteYoutubeMeta = async (videoConcept: string): Promise<
         return result;
 
     } catch (e) {
-        console.error("Failed to generate Athlete YouTube meta:", e);
-        throw new Error("Failed to generate athlete YouTube metadata.");
+        console.error("Failed to generate YouTube meta:", e);
+        throw new Error("Failed to generate YouTube metadata.");
     }
 }
-
 
 export const generatePromptsFromImage = async (base64ImageData: string): Promise<{scene: Scene, fullConcept: string}> => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -212,7 +167,7 @@ export const generatePromptsFromImageV2 = async (base64ImageData: string): Promi
 세 가지 별개의 결과물을 생성하세요:
 1.  **image_prompt**: AI 이미지 생성기가 이 장면을 매우 사실적으로 재현할 수 있도록 상세한 프롬프트를 만드세요. 사용자가 제공한 예시의 구조와 구성을 따르세요. 최종 프롬프트는 반드시 "An ultra-realistic vertical 9:16 medium shot..."으로 시작해야 하며 다음의 엄격한 규칙을 포함해야 합니다:
     *   **프레이밍:** 주요 피사체는 **중앙에 위치하고 9:16 프레임의 대부분을 채워야 하며**, 대략 **머리부터 무릎까지** 촬영되어야 합니다.
-    *   **피사체 설명:** 먼저, 이미지에 묘사된 **스포츠 종목을 식별**하세요. 그런 다음, 이미지에 기반하여 피사체의 외모, 표정, 자세를 상세히 묘사하세요. 운동선수는 땀에 흠뻑 젖어 있어야 합니다. 손의 모양부터 발끝까지, 예를 들어 신발을 신고 있지 않다면 맨발인 상태까지 완벽하게 묘사해야 합니다. **결정적으로, 식별된 스포츠 종목의 전통적인 유니폼을 재해석하여, 전체적인 장면과 피사체에 맞게 색상과 스타일을 조정한 세련된 투피스 유니폼**을 입고 있는 것으로 피사체를 묘사해야 합니다.
+    *   **피사체 설명:** 먼저, 이미지에 묘사된 **스포츠 종목을 식별**하세요. 그런 다음, 이미지에 기반하여 피사체의 외모, 표정, 자세를 상세히 묘사하세요. 운동선수는 땀에 흠뻑 젖어 있어야 합니다. 손의 모양부터 발끝까지, 예를 들어 신발을 신고 있지 않다면 맨발인 상태까지 완벽하게 묘사해야 합니다. **결정적으로, 식별된 스포츠 종목에 맞는 매우 사실적인 유니폼을 묘사해야 합니다. 유니폼은 투피스 스타일이어야 하며, 소재의 질감(예: 신축성 있는 스판덱스, 통기성 있는 메쉬), 몸에 꼭 맞는 핏, 땀으로 인한 미묘한 주름이나 빛 반사와 같은 현실적인 디테일을 강조해야 합니다. 단순히 '유니폼'이라고 하지 말고, 소재와 디자인의 사실적인 측면을 설명하여 진짜 선수복처럼 보이게 만드세요.**
     *   **배경:** 배경은 **부드럽게 흐려져야 합니다**. 특정 이미지에 맞게 수정된 "The background is softly blurred, showing a realistic track environment with sports photographers and media crew holding telephoto lenses and press badges."와 유사한 설명을 반드시 포함해야 합니다.
     *   **키워드:** 최종적으로 조합된 프롬프트의 끝에 "The scene feels authentic and dynamic, captured in 8K cinematic sports photography style, with natural lighting, perfect composition, and the athlete filling the 9:16 frame."과 같은 강력한 키워드를 추가하세요.
 2.  **video_prompts**: 정확히 두 개의 문자열로 이루어진 배열. 각 문자열은 새롭게 생성된 이미지 프롬프트를 기반으로 발생하거나 발생할 수 있는 다른 잠재적 행동을 묘사하는, AI 비디오 생성기를 위한 매우 상세하고 역동적인 프롬프트여야 합니다. 각 비디오 프롬프트는 영화적이고 몰입감 있는 느낌을 주기 위해 카메라 앵글, 분위기, 캐릭터/객체 움직임, 조명, 사운드에 대한 구체적인 내용을 포함해야 합니다.
