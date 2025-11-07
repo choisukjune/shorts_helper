@@ -13,7 +13,7 @@ import {
   generateVideoPromptForImage,
   generateNextScene,
   generateNextSceneFromUploadedImage,
-  generateDetailedImagePrompt
+  generateAllPromptsForConcept
 } from './services/geminiService';
 import CopyableField from './components/CopyableField';
 import { SparklesIcon, MagicWandIcon, LinkIcon, DownloadIcon, UploadIcon, RefreshIcon } from './components/icons';
@@ -41,7 +41,7 @@ const initialSeaPredatorOptions = ['Great White Shark', 'Orca', 'Tiger Shark', '
 const initialSeaBackgroundOptions = ['in a vibrant coral reef teeming with life', 'in the dark, crushing pressure of the abyssal zone', 'in a dense, swaying kelp forest', 'near a smoking hydrothermal vent on the ocean floor', 'in the vast, empty blue of the open ocean', 'around the rusting carcass of a sunken shipwreck'];
 
 
-type Tab = 'promptBuilder' | 'celebration' | 'faceoff' | 'friendship' | 'selfie' | 'analyze' | 'deepsea' | 'analyze2' | 'fishing' | 'volleyball' | 'swimming' | 'track';
+type Tab = 'promptBuilder' | 'celebration' | 'faceoff' | 'friendship' | 'selfie' | 'analyze' | 'deepsea' | 'analyze2' | 'fishing' | 'volleyball' | 'beachVolleyball' | 'swimming' | 'track';
 type DeepSeaVideoStyle = 'cinematic' | 'selfie' | 'groupPhoto';
 type FaceoffPreset = 'land' | 'sea';
 type AthleteStance = 'standing' | 'sitting' | 'cross-legged' | 'back-view' | 'side-view' | 'prone' | 'lying-down' | 'kneeling' | 'jumping' | 'stretching' | 'drinking-water' | 'wiping-sweat' | 'checking-gear';
@@ -103,7 +103,16 @@ const App: React.FC = () => {
   const [faceoffPreset, setFaceoffPreset] = useState<FaceoffPreset>('land');
   
   const [promptConcept, setPromptConcept] = useState<string>('');
-  const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
+  const [promptBuilderCountry, setPromptBuilderCountry] = useState<string>('');
+  const [promptBuilderResult, setPromptBuilderResult] = useState<{
+      imagePrompt: string;
+      videoPrompt: string;
+      englishTitle: string;
+      japaneseTitle: string;
+      tags: string;
+      englishDescription: string;
+      japaneseDescription: string;
+  } | null>(null);
   const [isBuildingPrompt, setIsBuildingPrompt] = useState<boolean>(false);
 
   // Volleyball state
@@ -111,6 +120,12 @@ const App: React.FC = () => {
   const [volleyballPose, setVolleyballPose] = useState('executing a powerful jump spike');
   const [volleyballFraming, setVolleyballFraming] = useState<'full body' | 'upper body'>('full body');
   const [volleyballStance, setVolleyballStance] = useState<AthleteStance>('standing');
+
+  // Beach Volleyball state
+  const [beachVolleyballCountry, setBeachVolleyballCountry] = useState('South Korea');
+  const [beachVolleyballPose, setBeachVolleyballPose] = useState('diving for a dig in the sand');
+  const [beachVolleyballFraming, setBeachVolleyballFraming] = useState<'full body' | 'upper body'>('full body');
+  const [beachVolleyballStance, setBeachVolleyballStance] = useState<AthleteStance>('standing');
 
   // Swimming state
   const [swimmingCountry, setSwimmingCountry] = useState('South Korea');
@@ -131,7 +146,7 @@ const App: React.FC = () => {
     setYoutubeMeta(null);
     setThumbnailBase64(null);
     setUploadedFrameBaseImage(null);
-    setGeneratedPrompt('');
+    setPromptBuilderResult(null);
 
     switch (tab) {
       case 'celebration':
@@ -166,6 +181,12 @@ const App: React.FC = () => {
         setVolleyballFraming('full body');
         setVolleyballStance('standing');
         break;
+      case 'beachVolleyball':
+        setBeachVolleyballCountry('South Korea');
+        setBeachVolleyballPose('diving for a dig in the sand');
+        setBeachVolleyballFraming('full body');
+        setBeachVolleyballStance('standing');
+        break;
       case 'swimming':
         setSwimmingCountry('South Korea');
         setSwimmingAction('diving off the starting block');
@@ -184,6 +205,7 @@ const App: React.FC = () => {
         break;
       case 'promptBuilder':
         setPromptConcept('');
+        setPromptBuilderCountry('');
         break;
     }
   };
@@ -338,6 +360,70 @@ ${introAction} ${actionDetails}
 The camera work is dynamic, tracking the player's movement with a low-angle shot to emphasize her power and athleticism. Quick cuts show the reactions of her teammates, the tense faces of the opposition, and flashes from the photographers' cameras in the background.
 The sound design is immersive and powerful: the squeak of shoes on the court, the sharp 'thwack' of the ball, the player's grunt of exertion, and the muffled roar of the crowd. No music, just the raw, intense sounds of a high-stakes professional volleyball match.
 The video ends with a point being scored or a transition back to the bench, followed by a tight shot on the player's triumphant or determined expression. Shot in gritty 8K with a sports documentary feel.`;
+  }, []);
+
+  const createBeachVolleyballPrompt = useCallback((
+    currentCountry: string, 
+    currentPose: string,
+    currentFraming: 'full body' | 'upper body',
+    currentStance: AthleteStance
+  ): string => {
+    const framingShot = currentFraming === 'full body' ? 'full-body' : 'upper-body';
+    let stanceContext: string;
+    switch (currentStance) {
+      case 'standing': stanceContext = 'on the sand,'; break;
+      case 'sitting': stanceContext = 'sitting on the sand near the net,'; break;
+      case 'cross-legged': stanceContext = 'sitting cross-legged on the sand,'; break;
+      case 'back-view': stanceContext = 'on the court with her back to the camera,'; break;
+      case 'side-view': stanceContext = 'on the court in a profile view,'; break;
+      case 'prone': stanceContext = 'lying prone on the sand,'; break;
+      case 'lying-down': stanceContext = 'lying on her back on the sand,'; break;
+      case 'kneeling': stanceContext = 'kneeling on the sand,'; break;
+      case 'jumping': stanceContext = 'in mid-air, jumping on the sand,'; break;
+      case 'stretching': stanceContext = 'on the sand, stretching her muscles,'; break;
+      case 'drinking-water': stanceContext = 'on the side of the court, drinking water from a bottle,'; break;
+      case 'wiping-sweat': stanceContext = 'on the side of the court, wiping sweat with a towel,'; break;
+      case 'checking-gear': stanceContext = 'on the sand, adjusting her sunglasses,'; break;
+    }
+
+    return `An ultra-realistic, cinematic, ${framingShot} action shot of a female ${currentCountry.toLowerCase()} national beach volleyball player. The scene is on a professional, sun-drenched sandy beach court. She is ${stanceContext} in the middle of ${currentPose.toLowerCase()}. Her expression is one of intense focus and determination, with beads of sweat and grains of sand on her sun-kissed skin, highlighting the physical exertion. She wears a highly realistic, modern two-piece bikini-style beach volleyball uniform that prominently features the ${currentCountry.toLowerCase()} national flag emblem. The uniform, made of high-performance, quick-drying fabric like spandex, fits snugly to her athletic form, showing subtle wrinkles and glistening with sweat under the bright sun. The background is softly blurred but clearly depicts a packed beachside stadium with spectators under umbrellas and the blue ocean visible in the distance. The scene feels authentic and dynamic, captured in 8K cinematic sports photography style, with dramatic lighting, perfect composition, and the athlete filling the 9:16 frame. ultra real photo.`;
+  }, []);
+
+  const createBeachVolleyballVideoPrompt = useCallback((
+      currentCountry: string, 
+      currentPose: string,
+      currentStance: AthleteStance
+  ): string => {
+      let introAction: string;
+      let actionDetails: string;
+
+      switch (currentStance) {
+        case 'standing':
+        case 'jumping':
+          introAction = `The video opens with the player frozen for a split second in the pose of ${currentPose.toLowerCase()}. Then, the action continues in dramatic slow motion.`;
+          actionDetails = `If she's spiking, the ball compresses against her hand before rocketing over the net. If she's digging, sand sprays into the air as she dives.`;
+          break;
+        case 'sitting':
+        case 'cross-legged':
+        case 'back-view':
+        case 'side-view':
+        case 'prone':
+        case 'lying-down':
+        case 'kneeling':
+        case 'stretching':
+        case 'drinking-water':
+        case 'wiping-sweat':
+        case 'checking-gear':
+          introAction = `The player is seen in the initial pose. She then transitions smoothly into a ready stance and the scene explodes into action.`;
+          actionDetails = `The camera follows her as she prepares to serve or receive, culminating in a powerful play like a spike or a dive into the sand.`;
+          break;
+      }
+
+      return `An ultra-realistic, high-energy cinematic video of a female ${currentCountry.toLowerCase()} national beach volleyball player. The scene, based on the attached image, explodes into motion on a sun-drenched beach court.
+${introAction} ${actionDetails}
+The camera work is dynamic, tracking the player's movement with a low-angle shot to emphasize her power and athleticism against the bright sky. Quick cuts show the reactions of her partner, the tense faces of the opposition, and the cheering crowd.
+The sound design is immersive and powerful: the soft thud of feet on sand, the sharp 'thwack' of the ball, the player's grunt of exertion, and the roar of the crowd mixed with the distant sound of crashing waves. No music, just the raw, intense sounds of a high-stakes professional beach volleyball match.
+The video ends with a point being scored, followed by a tight shot on the player's triumphant or determined expression as she high-fives her partner. Shot in gritty 8K with a sports documentary feel.`;
   }, []);
 
   const createSwimmingPrompt = useCallback((
@@ -514,6 +600,10 @@ The video ends with her crossing the finish line, followed by a tight shot on he
           imagePrompt = createVolleyballPrompt(country, volleyballPose, volleyballFraming, volleyballStance);
           videoPrompt = createVolleyballVideoPrompt(country, volleyballPose, volleyballStance);
           concept = `A ${country} volleyball player ${volleyballPose}`;
+      } else if (activeTab === 'beachVolleyball') {
+          imagePrompt = createBeachVolleyballPrompt(beachVolleyballCountry, beachVolleyballPose, beachVolleyballFraming, beachVolleyballStance);
+          videoPrompt = createBeachVolleyballVideoPrompt(beachVolleyballCountry, beachVolleyballPose, beachVolleyballStance);
+          concept = `A ${beachVolleyballCountry} beach volleyball player ${beachVolleyballPose}`;
       } else if (activeTab === 'swimming') {
           imagePrompt = createSwimmingPrompt(swimmingCountry, swimmingAction, swimmingFraming, swimmingStance);
           videoPrompt = createSwimmingVideoPrompt(swimmingCountry, swimmingAction, swimmingStance);
@@ -631,6 +721,9 @@ The video ends with her crossing the finish line, followed by a tight shot on he
         if (activeTab === 'volleyball') {
             const result = await generateRandomizedContent('volleyball');
             if (result.pose) setVolleyballPose(result.pose);
+        } else if (activeTab === 'beachVolleyball') {
+            const result = await generateRandomizedContent('beachVolleyball');
+            if (result.pose) setBeachVolleyballPose(result.pose);
         } else if (activeTab === 'swimming') {
             const result = await generateRandomizedContent('swimming');
             if (result.pose) setSwimmingAction(result.pose);
@@ -810,19 +903,19 @@ The video ends with her crossing the finish line, followed by a tight shot on he
       }
   }
 
-  const handleGenerateBuilderPrompt = async () => {
+  const handleGenerateBuilderPrompts = async () => {
     if (!promptConcept.trim()) {
         setError("Please enter a concept.");
         return;
     }
     setError(null);
     setIsBuildingPrompt(true);
-    setGeneratedPrompt('');
+    setPromptBuilderResult(null);
     try {
-        const prompt = await generateDetailedImagePrompt(promptConcept);
-        setGeneratedPrompt(prompt);
+        const result = await generateAllPromptsForConcept(promptConcept, promptBuilderCountry);
+        setPromptBuilderResult(result);
     } catch (e: any) {
-        setError(e.message || "Failed to generate prompt.");
+        setError(e.message || "Failed to generate prompts.");
     } finally {
         setIsBuildingPrompt(false);
     }
@@ -959,16 +1052,29 @@ The video ends with her crossing the finish line, followed by a tight shot on he
     switch (activeTab) {
       case 'promptBuilder':
         return (
-          <div className="space-y-4">
-            <label htmlFor="prompt-concept" className="block text-sm font-medium text-gray-400">Enter a simple concept</label>
-            <textarea
-                id="prompt-concept"
-                value={promptConcept}
-                onChange={(e) => setPromptConcept(e.target.value)}
-                placeholder="e.g., A knight fighting a dragon in a volcano"
-                rows={3}
-                className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-white"
-            />
+          <div className="space-y-6">
+            <div>
+                <label htmlFor="prompt-concept" className="block text-sm font-medium text-gray-400">Enter a simple concept</label>
+                <textarea
+                    id="prompt-concept"
+                    value={promptConcept}
+                    onChange={(e) => setPromptConcept(e.target.value)}
+                    placeholder="e.g., A knight fighting a dragon in a volcano"
+                    rows={3}
+                    className="mt-2 w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-white"
+                />
+            </div>
+            <div>
+                <label htmlFor="prompt-country" className="block text-sm font-medium text-gray-400">Country (Optional)</label>
+                <input
+                    id="prompt-country"
+                    type="text"
+                    value={promptBuilderCountry}
+                    onChange={(e) => setPromptBuilderCountry(e.target.value)}
+                    placeholder="e.g., South Korea, Japan, Ancient Rome"
+                    className="mt-2 w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-white"
+                />
+            </div>
           </div>
         );
       case 'celebration':
@@ -1225,6 +1331,53 @@ The video ends with her crossing the finish line, followed by a tight shot on he
             </div>
           </div>
         );
+      case 'beachVolleyball':
+        return (
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="beach-country" className="block text-sm font-medium text-gray-400 mb-2">Country</label>
+              <select id="beach-country" value={beachVolleyballCountry} onChange={(e) => setBeachVolleyballCountry(e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                <option value="South Korea">South Korea</option>
+                <option value="Japan">Japan</option>
+              </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Framing</label>
+                <div className="flex items-center gap-x-6">
+                    <label className="flex items-center text-gray-300 cursor-pointer">
+                        <input type="radio" value="full body" checked={beachVolleyballFraming === 'full body'} onChange={() => setBeachVolleyballFraming('full body')} className="w-4 h-4 text-indigo-600 bg-gray-900 border-gray-600 focus:ring-indigo-500 focus:ring-2" />
+                        <span className="ml-2">전체컷 (Full Body)</span>
+                    </label>
+                    <label className="flex items-center text-gray-300 cursor-pointer">
+                        <input type="radio" value="upper body" checked={beachVolleyballFraming === 'upper body'} onChange={() => setBeachVolleyballFraming('upper body')} className="w-4 h-4 text-indigo-600 bg-gray-900 border-gray-600 focus:ring-indigo-500 focus:ring-2" />
+                        <span className="ml-2">상반신컷 (Upper Body)</span>
+                    </label>
+                </div>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Stance</label>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    {stanceOptions.map(option => (
+                        <label key={option.value} className="flex items-center text-gray-300 cursor-pointer">
+                            <input type="radio" value={option.value} checked={beachVolleyballStance === option.value} onChange={() => setBeachVolleyballStance(option.value)} className="w-4 h-4 text-indigo-600 bg-gray-900 border-gray-600 focus:ring-indigo-500 focus:ring-2" />
+                            <span className="ml-2">{option.label}</span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+            <div>
+              <label htmlFor="beach-volleyball-pose" className="block text-sm font-medium text-gray-400 mb-2">Pose / Action</label>
+               <textarea
+                id="beach-volleyball-pose"
+                value={beachVolleyballPose}
+                onChange={(e) => setBeachVolleyballPose(e.target.value)}
+                placeholder="e.g., diving for a dig in the sand"
+                rows={2}
+                className="w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-white"
+              />
+            </div>
+          </div>
+        );
       case 'swimming':
         return (
           <div className="space-y-6">
@@ -1396,6 +1549,7 @@ The video ends with her crossing the finish line, followed by a tight shot on he
                 <button onClick={() => handleTabChange('friendship')} className={getTabClass('friendship')}>Friendship</button>
                 <button onClick={() => handleTabChange('selfie')} className={getTabClass('selfie')}>Selfie</button>
                 <button onClick={() => handleTabChange('volleyball')} className={getTabClass('volleyball')}>배구선수 생성</button>
+                <button onClick={() => handleTabChange('beachVolleyball')} className={getTabClass('beachVolleyball')}>비치발리볼 선수 생성</button>
                 <button onClick={() => handleTabChange('swimming')} className={getTabClass('swimming')}>수영선수 생성</button>
                 <button onClick={() => handleTabChange('track')} className={getTabClass('track')}>육상선수 생성</button>
                 <button onClick={() => handleTabChange('fishing')} className={getTabClass('fishing')}>Fishing</button>
@@ -1411,12 +1565,12 @@ The video ends with her crossing the finish line, followed by a tight shot on he
                 {activeTab === 'promptBuilder' && (
                     <div className="mt-8 flex flex-col sm:flex-row gap-4">
                         <button
-                        onClick={handleGenerateBuilderPrompt}
+                        onClick={handleGenerateBuilderPrompts}
                         disabled={isBuildingPrompt}
                         className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
                         >
                             <SparklesIcon className="h-5 w-5" />
-                            {isBuildingPrompt ? 'Generating...' : 'Generate Detailed Prompt'}
+                            {isBuildingPrompt ? 'Generating...' : 'Generate All Prompts'}
                         </button>
                     </div>
                 )}
@@ -1445,7 +1599,7 @@ The video ends with her crossing the finish line, followed by a tight shot on he
             </div>
         </div>
 
-        {isBuildingPrompt && (
+        {(isGenerating || isAnalyzing || isBuildingPrompt) && (
             <div className="mt-8 flex justify-center">
                 <svg className="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1460,10 +1614,17 @@ The video ends with her crossing the finish line, followed by a tight shot on he
                 <span className="block sm:inline">{error}</span>
             </div>
         )}
-
-        {generatedPrompt && (
+        
+        {activeTab === 'promptBuilder' && promptBuilderResult && !isBuildingPrompt && (
           <div className="mt-12 space-y-10">
-              <CopyableField title="Generated Image Prompt" content={generatedPrompt} />
+              <CopyableField title="Generated Image Prompt" content={promptBuilderResult.imagePrompt} />
+              <CopyableField title="Generated Video Prompt" content={promptBuilderResult.videoPrompt} />
+              <CopyableField 
+                  title="YouTube Shorts Title & Description" 
+                  content={`---\n${promptBuilderResult.englishTitle} ${promptBuilderResult.japaneseTitle}\n${promptBuilderResult.tags}\n\n${promptBuilderResult.englishDescription}\n\n${promptBuilderResult.japaneseDescription}`}
+                  variant="meta" 
+                  displayAsCode 
+              />
           </div>
         )}
 

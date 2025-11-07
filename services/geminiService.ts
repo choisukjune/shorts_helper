@@ -269,6 +269,10 @@ export const generateRandomizedContent = async (
         prompt = `Generate a short, natural pose or action for a female volleyball player, suitable for a sports news photo. Focus on moments before or after a game, not active play. Examples: 'giving a post-game interview', 'stretching on the sidelines', 'waving to fans'. The description should be 2-5 words. Just return the action description.`;
         schema.properties = { pose: { type: Type.STRING } };
         schema.required = ['pose'];
+    } else if (tab === 'beachVolleyball') {
+        prompt = `Generate a short, natural pose or action for a female beach volleyball player, suitable for a sports news photo. Focus on moments before or after a game, not active play. Examples: 'adjusting sunglasses', 'high-fiving her partner', 'wiping sand off her arms'. The description should be 2-5 words. Just return the action description.`;
+        schema.properties = { pose: { type: Type.STRING } };
+        schema.required = ['pose'];
     } else if (tab === 'swimming') {
         prompt = `Generate a short, natural pose or action for a female swimmer, suitable for a sports news photo. Focus on moments outside the race itself. Examples: 'being interviewed by the pool', 'stretching on the starting block', 'celebrating a win'. The description should be 2-5 words. Just return the action description.`;
         schema.properties = { pose: { type: Type.STRING } };
@@ -568,42 +572,81 @@ Return the result as a single JSON object.`
     return parsed.video_prompt;
 };
 
-export const generateDetailedImagePrompt = async (concept: string): Promise<string> => {
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const model = 'gemini-2.5-flash';
+export const generateAllPromptsForConcept = async (concept: string, country?: string): Promise<{
+  imagePrompt: string;
+  videoPrompt: string;
+  englishTitle: string;
+  japaneseTitle: string;
+  tags: string;
+  englishDescription: string;
+  japaneseDescription: string;
+}> => {
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const model = 'gemini-2.5-flash';
 
-        const schema = {
-            type: Type.OBJECT,
-            properties: {
-                detailed_prompt: { 
-                    type: Type.STRING, 
-                    description: 'The final, detailed image prompt as a single paragraph.' 
-                },
-            },
-            required: ['detailed_prompt']
-        };
-        const contents = `Expand the following simple concept into a rich, detailed, and photorealistic image prompt suitable for an advanced AI image generator. The prompt should be a single paragraph. Elaborate on the subject, the environment, the mood, the lighting, and specific visual details. Conclude the prompt with a string of relevant, high-impact keywords for achieving realism and high quality.
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        image_prompt: {
+          type: Type.STRING,
+          description: 'A detailed, single-paragraph photorealistic image prompt.'
+        },
+        video_prompt: {
+          type: Type.STRING,
+          description: 'A detailed, single-paragraph cinematic video prompt.'
+        },
+        english_title: { type: Type.STRING, description: 'A catchy, viral YouTube Shorts title in English (max 60 characters).' },
+        japanese_title: { type: Type.STRING, description: `A catchy, viral YouTube Shorts title in Japanese (max 60 characters).` },
+        tags: { type: Type.STRING, description: 'A single string of 3-5 relevant hashtags, each starting with # and separated by spaces. e.g., #concept #ai #shorts' },
+        english_description: { type: Type.STRING, description: 'A brief, engaging YouTube Shorts description in English.' },
+        japanese_description: { type: Type.STRING, description: `A brief, engaging YouTube Shorts description in Japanese.` },
+      },
+      required: ['image_prompt', 'video_prompt', 'english_title', 'japanese_title', 'tags', 'english_description', 'japanese_description']
+    };
 
-Concept: "${concept}"`;
+    const contents = `You are an expert prompt creator for AI multimedia generation.
+    Based on the following user-provided concept, generate a comprehensive set of assets.
+    The concept is: "${concept}"
+    ${country ? `The context should involve or be set in: "${country}"` : ''}
 
-        const response = await ai.models.generateContent({
-            model,
-            contents,
-            config: { responseMimeType: "application/json", responseSchema: schema },
-        });
-        
-        const jsonStr = cleanJsonString(response.text);
-        if (!jsonStr) throw new Error("AI returned an empty response.");
-        const parsed = JSON.parse(jsonStr);
+    Generate the following items:
+    1.  **A detailed Image Prompt:** A single, rich paragraph for a photorealistic image. Describe the subject, environment, mood, lighting, and specific visual details. Conclude with high-impact keywords like "ultra-realistic, cinematic lighting, 8K detail, ultra real photo."
+    2.  **A detailed Video Prompt:** A single paragraph describing a dynamic, cinematic video scene based on the image prompt. Detail the action, camera movements (e.g., slow-motion, tracking shots), sound design, and overall atmosphere. Make it engaging for a short video format.
+    3.  **YouTube Metadata:**
+        - A catchy, viral YouTube Shorts title in English (max 60 characters).
+        - A catchy, viral YouTube Shorts title in Japanese (max 60 characters).
+        - A brief, engaging YouTube Shorts description in English.
+        - A brief, engaging YouTube Shorts description in Japanese.
+        - A single string of 3-5 relevant hashtags, each starting with # and separated by spaces.
 
-        if (!parsed.detailed_prompt) {
-            throw new Error("Failed to generate a detailed prompt.");
-        }
-        
-        return parsed.detailed_prompt;
-    } catch (e) {
-        console.error("Failed to generate detailed prompt:", e);
-        throw new Error("Failed to generate a detailed image prompt.");
+    Return the result as a single JSON object.`;
+
+    const response = await ai.models.generateContent({
+      model,
+      contents,
+      config: { responseMimeType: "application/json", responseSchema: schema },
+    });
+
+    const jsonStr = cleanJsonString(response.text);
+    if (!jsonStr) throw new Error("AI returned an empty response.");
+    const parsed = JSON.parse(jsonStr);
+
+    if (!parsed.image_prompt || !parsed.video_prompt || !parsed.english_title || !parsed.japanese_title || !parsed.tags || !parsed.english_description || !parsed.japanese_description) {
+      throw new Error("Failed to generate all required prompt assets.");
     }
+
+    return {
+      imagePrompt: parsed.image_prompt,
+      videoPrompt: parsed.video_prompt,
+      englishTitle: parsed.english_title,
+      japaneseTitle: parsed.japanese_title,
+      tags: parsed.tags,
+      englishDescription: parsed.english_description,
+      japaneseDescription: parsed.japanese_description,
+    };
+  } catch (e) {
+    console.error("Failed to generate prompts from concept:", e);
+    throw new Error("Failed to generate prompts from concept.");
+  }
 }
